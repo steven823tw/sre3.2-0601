@@ -115,7 +115,7 @@ async def _check_database() -> dict:
     try:
         from app.core.database import _get_session_factory
 
-        factory = _get_session_factory()
+        factory = await _get_session_factory()
         async with factory() as session:
             from sqlalchemy import text
 

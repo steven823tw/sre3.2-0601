@@ -7,6 +7,8 @@ to the operations table.  Handles timeouts and errors gracefully.
 from __future__ import annotations
 
 import asyncio
+import ipaddress
+import re
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -61,6 +63,25 @@ class ExecutionResult:
     started_at: datetime | None = None
     completed_at: datetime | None = None
 
+
+
+def _validate_target(t: str) -> str:
+    """Validate target is a legal hostname or IP address.
+
+    Raises:
+        ValidationException: If target is not a valid IP or hostname.
+    """
+    try:
+        ipaddress.ip_address(t)
+        return t
+    except ValueError:
+        pass
+    if re.fullmatch(r'[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?', t) and len(t) <= 253:
+        return t
+    raise ValidationException(
+        f"Invalid target: {t!r} - must be a valid IP or hostname",
+        details={"target": t},
+    )
 
 class OperationExecutor:
     """Execute atomic operations with timeout and error handling.
@@ -250,25 +271,25 @@ class OperationExecutor:
         Raises:
             OperationFailedError: If the operation fails.
         """
-        import subprocess
-
         target = params.get("target") or params.get("vm") or params.get("host") or params.get("instance") or "unknown"
         category = op.category.value if op else "unknown"
 
         # Map operation categories to execution strategies
         if category == "infra":
-            # Infrastructure operations use system commands
+            # Infrastructure operations - SECURE: use create_subprocess_exec + input validation
+            safe_target = _validate_target(target)
             cmd_map = {
-                "infra.ping": f"ping -c 3 {target}",
-                "infra.traceroute": f"traceroute -m 15 {target}",
-                "infra.dns_check": f"nslookup {target}",
-                "infra.port_scan": f"nc -zv {target} 22 80 443",
+                "infra.ping": ["ping", "-c", "3", safe_target],
+                "infra.traceroute": ["traceroute", "-m", "15", safe_target],
+                "infra.dns_check": ["nslookup", safe_target],
+                "infra.port_scan": ["nc", "-zv", safe_target, "22", "80", "443"],
             }
-            cmd = cmd_map.get(operation_id)
-            if cmd:
+            cmd_args = cmd_map.get(operation_id)
+            if cmd_args:
+                proc = None
                 try:
-                    proc = await asyncio.create_subprocess_shell(
-                        cmd,
+                    proc = await asyncio.create_subprocess_exec(
+                        *cmd_args,
                         stdout=asyncio.subprocess.PIPE,
                         stderr=asyncio.subprocess.PIPE,
                     )
@@ -277,13 +298,20 @@ class OperationExecutor:
                     return {
                         "status": "success" if proc.returncode == 0 else "failed",
                         "operation_id": operation_id,
-                        "target": target,
+                        "target": safe_target,
                         "output": output,
                         "return_code": proc.returncode,
                         "timestamp": datetime.now(timezone.utc).isoformat(),
                     }
                 except asyncio.TimeoutError:
-                    raise OperationFailedError(operation_id, f"Command timed out: {cmd}")
+                    if proc:
+                        proc.kill()
+                        await proc.wait()
+                    raise OperationFailedException(operation_id, f"Command timed out: {cmd_args}")
+                finally:
+                    if proc and proc.returncode is None:
+                        proc.kill()
+                        await proc.wait()
         elif category == "compute":
             # Compute operations delegate to platform adapters
             # In a full implementation, this would look up the platform adapter

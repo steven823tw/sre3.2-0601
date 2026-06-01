@@ -1,5 +1,6 @@
 export { cn, formatBytes, formatDuration, formatRelativeTime, getPlatformTypeInfo, getStatusColor } from './utils';
-export { usePlatformStore, useMigrationStore } from './stores';
+export { usePlatformStore } from '@/stores/platformStore';
+export { useMigrationStore } from '@/stores/migrationStore';
 export {
   queryKeys,
   usePlatforms,

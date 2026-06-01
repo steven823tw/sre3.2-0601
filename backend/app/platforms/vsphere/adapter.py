@@ -14,7 +14,7 @@ from typing import Any
 import structlog
 
 from app.platforms.base import (
-    AdapterError, AuthenticationError, ConnectionError,
+    AdapterError, AuthenticationError, AdapterConnectionError,
     ConnectionTestResult, DeviceInfo, NotFoundError,
     OperationFailedError, PlatformAdapter, PlatformConfig, PlatformType,
 )
@@ -137,7 +137,7 @@ class VSphereAdapter(PlatformAdapter):
                     f"Invalid credentials for {config.host}: {exc}"
                 ) from exc
             except Exception as exc:
-                raise ConnectionError(
+                raise AdapterConnectionError(
                     f"Cannot connect to {config.host}:{config.port}: {exc}"
                 ) from exc
 
@@ -146,10 +146,10 @@ class VSphereAdapter(PlatformAdapter):
             self._connected = True
             logger.info("vsphere_connected", host=config.host, port=config.port)
             return True
-        except (AuthenticationError, ConnectionError):
+        except (AuthenticationError, AdapterConnectionError):
             raise
         except Exception as exc:
-            raise ConnectionError(f"Unexpected error: {exc}") from exc
+            raise AdapterConnectionError(f"Unexpected error: {exc}") from exc
 
     async def disconnect(self) -> None:
         """Disconnect from vCenter / ESXi."""

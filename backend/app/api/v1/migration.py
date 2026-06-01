@@ -6,9 +6,9 @@ Provides migration planning, execution, status, and rollback.
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from fastapi import APIRouter, HTTPException
+from app.dependencies import CurrentUser
 from pydantic import BaseModel, Field
 
 from app.migration.engine import (
@@ -98,7 +98,7 @@ def _status_to_response(info: MigrationStatusInfo) -> MigrationStatusResponse:
 
 
 @router.post("/plan", response_model=MigrationPlanResponse)
-async def create_plan(req: MigrationPlanRequest) -> MigrationPlanResponse:
+async def create_plan(req: MigrationPlanRequest, user: CurrentUser) -> MigrationPlanResponse:
     """Generate a migration plan for a VM."""
     try:
         plan = await engine.plan_migration(req.vm_id, req.source, req.target)
@@ -108,7 +108,7 @@ async def create_plan(req: MigrationPlanRequest) -> MigrationPlanResponse:
 
 
 @router.post("/execute", response_model=MigrationActionResponse)
-async def execute_migration(plan_id: str) -> MigrationActionResponse:
+async def execute_migration(plan_id: str, user: CurrentUser) -> MigrationActionResponse:
     """Execute a migration plan."""
     try:
         success = await engine.execute_migration(plan_id)
@@ -121,7 +121,7 @@ async def execute_migration(plan_id: str) -> MigrationActionResponse:
 
 
 @router.get("/{plan_id}", response_model=MigrationStatusResponse)
-async def get_status(plan_id: str) -> MigrationStatusResponse:
+async def get_status(plan_id: str, user: CurrentUser) -> MigrationStatusResponse:
     """Get the status of a migration plan."""
     try:
         info = await engine.get_migration_status(plan_id)
@@ -131,7 +131,7 @@ async def get_status(plan_id: str) -> MigrationStatusResponse:
 
 
 @router.post("/{plan_id}/rollback", response_model=MigrationActionResponse)
-async def rollback_migration(plan_id: str) -> MigrationActionResponse:
+async def rollback_migration(plan_id: str, user: CurrentUser) -> MigrationActionResponse:
     """Rollback a migration plan."""
     try:
         success = await engine.rollback_migration(plan_id)

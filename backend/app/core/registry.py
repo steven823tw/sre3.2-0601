@@ -110,7 +110,7 @@ def _seed_operations() -> None:
             description="Verify DNS resolution for a hostname",
             risk_level=RiskLevel.LOW,
             estimated_time_ms=3000,
-            params_schema={"hostname": "string"},
+            params_schema={"target": "string"},
             requires_approval=False,
             reversible=False,
         ),

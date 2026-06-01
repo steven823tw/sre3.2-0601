@@ -10,7 +10,8 @@ from typing import Any
 from fastapi import APIRouter, Query
 from pydantic import BaseModel
 
-from app.core.registry import OpCategory, registry
+from app.core.registry import OpCategory
+from app.dependencies import CurrentUser, RegistryDep
 
 router = APIRouter(prefix="/atomics", tags=["Atomic Operations"])
 
@@ -42,6 +43,8 @@ class AtomicOperationListResponse(BaseModel):
     description="List all registered atomic operations with optional category filter.",
 )
 async def list_atomics(
+    user: CurrentUser,
+    registry: RegistryDep,
     category: OpCategory | None = Query(None, description="Filter by category"),
     search: str | None = Query(None, description="Search by name or description"),
 ) -> AtomicOperationListResponse:
@@ -79,7 +82,7 @@ async def list_atomics(
     summary="Get atomic operation",
     description="Fetch a single atomic operation by its dot-notation ID.",
 )
-async def get_atomic(operation_id: str) -> AtomicOperationResponse:
+async def get_atomic(operation_id: str, user: CurrentUser, registry: RegistryDep) -> AtomicOperationResponse:
     """Return a single atomic operation by ID."""
     op = registry.get(operation_id)
     if op is None:

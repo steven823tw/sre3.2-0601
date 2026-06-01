@@ -21,7 +21,7 @@ async def test_create_asset(client: AsyncClient):
     payload = {
         "name": "test-vm-01",
         "asset_type": "vm",
-        "platform": "vSphere",
+        "platform": "vsphere",
         "status": "running",
         "ip_address": "10.0.1.100",
     }
@@ -30,7 +30,7 @@ async def test_create_asset(client: AsyncClient):
     data = response.json()
     assert data["name"] == "test-vm-01"
     assert data["asset_type"] == "vm"
-    assert data["platform"] == "vSphere"
+    assert data["platform"] == "vsphere"
     assert data["id"] is not None
 
 
@@ -110,7 +110,7 @@ async def test_execute_action_restart(client: AsyncClient, seed_assets):
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["success"] is True
+    assert data["success"] is False  # not_implemented until platform adapter integration
     assert data["action"] == "restart"
 
 

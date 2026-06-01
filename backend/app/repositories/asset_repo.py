@@ -46,8 +46,11 @@ class AssetRepository(BaseRepository[Asset]):
             stmt = stmt.where(Asset.status == status)
             count_stmt = count_stmt.where(Asset.status == status)
         if search:
-            pattern = f"%{search}%"
-            search_filter = Asset.name.ilike(pattern) | Asset.hostname.ilike(pattern)
+            # Escape SQL LIKE wildcards to prevent injection
+            def _escape_like(s: str) -> str:
+                return s.replace(chr(92), chr(92)*2).replace('%', chr(92)+'%').replace('_', chr(92)+'_')
+            pattern = f'%{_escape_like(search)}%'
+            search_filter = Asset.name.ilike(pattern, escape="\\") | Asset.hostname.ilike(pattern, escape="\\")
             stmt = stmt.where(search_filter)
             count_stmt = count_stmt.where(search_filter)
 

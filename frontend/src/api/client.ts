@@ -34,7 +34,12 @@ class HttpClient {
       if (!response.ok) {
         const errorBody = await response.json().catch(() => ({}));
         const error: ApiError = {
-          message: (errorBody as Record<string, string>).message ?? response.statusText,
+          message: (() => {
+              const d = (errorBody as Record<string, unknown>).detail;
+              if (typeof d === "string") return d;
+              if (Array.isArray(d)) return d.map((e: Record<string, string>) => e.msg ?? JSON.stringify(e)).join("; ");
+              return (errorBody as Record<string, string>).message ?? response.statusText;
+            })(),
           code: (errorBody as Record<string, string>).code ?? "UNKNOWN_ERROR",
           status: response.status,
         };

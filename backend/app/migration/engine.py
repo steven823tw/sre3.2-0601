@@ -42,6 +42,7 @@ class MigrationStep:
     action: str
     description: str
     command: str = ""
+    is_descriptive: bool = False  # True = placeholder, skip execution
     status: str = "pending"
     error: str | None = None
 
@@ -101,23 +102,23 @@ class MigrationEngine:
 
         if method == MigrationMethod.V2V:
             steps = [
-                MigrationStep(order=1, action="export", description="Export VM disk from vSphere", command="export OVA from vSphere"),
+                MigrationStep(order=1, action="export", description="Export VM disk from vSphere", command="export OVA from vSphere", is_descriptive=True),
                 MigrationStep(order=2, action="convert", description="Convert disk using virt-v2v", command="virt-v2v -i ova disk.ova -o local -os /var/lib/libvirt/images"),
                 MigrationStep(order=3, action="import", description="Import VM into KVM/libvirt", command="virsh define converted-vm.xml"),
-                MigrationStep(order=4, action="verify", description="Verify VM boots and network connectivity", command="virsh dominfo <vm_id>"),
+                MigrationStep(order=4, action="verify", description="Verify VM boots and network connectivity", command="virsh dominfo <vm_id>", is_descriptive=True),
             ]
         elif method == MigrationMethod.QEMU_CONVERT:
             steps = [
-                MigrationStep(order=1, action="export", description="Export VM disk from source platform", command="download disk image"),
+                MigrationStep(order=1, action="export", description="Export VM disk from source platform", command="download disk image", is_descriptive=True),
                 MigrationStep(order=2, action="convert", description="Convert disk format using qemu-img", command="qemu-img convert -f vmdk -O qcow2 source.vmdk target.qcow2"),
-                MigrationStep(order=3, action="import", description="Import VM into target platform", command="create VM from converted disk"),
-                MigrationStep(order=4, action="verify", description="Verify VM boots correctly", command="check VM status"),
+                MigrationStep(order=3, action="import", description="Import VM into target platform", command="create VM from converted disk", is_descriptive=True),
+                MigrationStep(order=4, action="verify", description="Verify VM boots correctly", command="check VM status", is_descriptive=True),
             ]
         elif method == MigrationMethod.LIVE_MIGRATE:
             steps = [
-                MigrationStep(order=1, action="pre_check", description="Verify source and target compatibility", command="check resources"),
-                MigrationStep(order=2, action="migrate", description="Perform live migration", command="live migrate VM"),
-                MigrationStep(order=3, action="verify", description="Verify VM on target host", command="check VM status"),
+                MigrationStep(order=1, action="pre_check", description="Verify source and target compatibility", command="check resources", is_descriptive=True),
+                MigrationStep(order=2, action="migrate", description="Perform live migration", command="live migrate VM", is_descriptive=True),
+                MigrationStep(order=3, action="verify", description="Verify VM on target host", command="check VM status", is_descriptive=True),
             ]
 
         plan = MigrationPlan(
@@ -146,10 +147,17 @@ class MigrationEngine:
                 step.status = "running"
                 logger.info("step_started", plan_id=plan_id, step=step.order, action=step.action)
                 # Execute the migration command via subprocess
-                import subprocess
+                # NOTE: Descriptive commands (non-shell) are logged but not executed.
+                # Real commands use create_subprocess_exec with argument lists.
+                import shlex
                 try:
-                    proc = await asyncio.create_subprocess_shell(
-                        step.command,
+                    if step.is_descriptive or not (step.command or "").strip():
+                        logger.warning("migration_step_skip_descriptive", step=step.order, command=step.command)
+                        step.status = "completed"
+                        continue
+                    cmd_args = shlex.split(step.command)
+                    proc = await asyncio.create_subprocess_exec(
+                        *cmd_args,
                         stdout=asyncio.subprocess.PIPE,
                         stderr=asyncio.subprocess.PIPE,
                     )

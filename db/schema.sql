@@ -43,15 +43,17 @@ CREATE TYPE asset_status AS ENUM (
     'error'
 );
 
--- Platform identifiers
+-- Platform identifiers (must match app/models/asset.py Platform enum)
 CREATE TYPE platform_type AS ENUM (
-    'vmware_vsphere',
+    'vsphere',
+    'kvm',
+    'fusionsphere',
     'openstack',
     'kubernetes',
     'physical',
-    'fusion_sphere',
     'storage_array',
-    'network'
+    'network',
+    'other'
 );
 
 -- Alert severity levels (mirrors Prometheus/Grafana)

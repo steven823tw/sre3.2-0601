@@ -70,11 +70,16 @@ def create_refresh_token(subject: str) -> str:
     return jwt.encode(claims, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
-def decode_token(token: str) -> dict[str, Any]:
+def decode_token(token: str, *, expected_type: str | None = None) -> dict[str, Any]:
     """Decode and validate a JWT token.
+
+    Args:
+        token: The encoded JWT string.
+        expected_type: If set, validates the ``type`` claim (e.g. "access").
 
     Raises:
         JWTError: If the token is invalid, expired, or malformed.
+        ValueError: If the token type does not match ``expected_type``.
 
     Returns:
         The decoded claims as a dictionary.
@@ -85,6 +90,11 @@ def decode_token(token: str) -> dict[str, Any]:
             settings.JWT_SECRET_KEY,
             algorithms=[settings.JWT_ALGORITHM],
         )
-        return payload
     except JWTError as exc:
-        raise JWTError(f"Token validation failed: {exc}") from exc
+        raise JWTError(str(exc)) from exc
+
+    if expected_type and payload.get("type") != expected_type:
+        raise ValueError(
+            f"Expected token type '{expected_type}', got '{payload.get('type')}'"
+        )
+    return payload

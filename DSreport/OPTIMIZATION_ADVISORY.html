@@ -1,0 +1,600 @@
+<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8"><title>V3.2 深度优化建议报告</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box }
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#0a0c10; color:#d0d4dc; line-height:1.7; padding:2rem }
+h1 { color:#00bfa5; font-size:2rem; margin-bottom:.25rem }
+h2 { color:#e0e0e0; font-size:1.4rem; margin:2.5rem 0 1rem; padding-bottom:.5rem; border-bottom:2px solid #1e2329 }
+h3 { color:#00bfa5; font-size:1.1rem; margin:1.5rem 0 .75rem }
+.subtitle { color:#6b7280; font-size:.9rem; margin-bottom:1.5rem }
+.fix-banner { background:#0a2e1a; border:1px solid #00bfa544; border-radius:12px; padding:1.5rem; margin:1.5rem 0; display:flex; gap:1rem; align-items:center }
+.fix-banner .check { color:#00bfa5; font-size:2rem; flex-shrink:0 }
+.fix-banner .badge { background:#00bfa522; color:#00bfa5; border-radius:4px; padding:2px 8px; font-size:.75rem; font-weight:600; margin-right:.5rem }
+.scorecards { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:1rem; margin:1.5rem 0 }
+.card { background:#11151c; border:1px solid #1e2329; border-radius:12px; padding:1.25rem }
+.card .label { color:#6b7280; font-size:.75rem; text-transform:uppercase; letter-spacing:.05em }
+.card .score { font-size:2.5rem; font-weight:700; margin:.25rem 0 }
+.card .desc { font-size:.8rem; color:#9ca3af }
+.section { background:#11151c; border:1px solid #1e2329; border-radius:12px; padding:1.5rem; margin:1rem 0 }
+.section h3 { margin-top:0 }
+.p0 { color:#ff5252 }
+.p1 { color:#ffab40 }
+.p2 { color:#ffd740 }
+.p3 { color:#69f0ae }
+.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:1.5rem }
+@media(max-width:768px){ .grid2 { grid-template-columns:1fr } }
+table { width:100%; border-collapse:collapse; font-size:.85rem; margin:.75rem 0 }
+th { text-align:left; padding:.5rem .75rem; border-bottom:2px solid #1e2329; color:#6b7280; font-size:.75rem; text-transform:uppercase }
+td { padding:.5rem .75rem; border-bottom:1px solid #1e2329; vertical-align:top }
+.tag { display:inline-block; font-size:.7rem; padding:2px 8px; border-radius:4px; font-weight:600 }
+.tag-p0 { background:#ff525222; color:#ff5252 }
+.tag-p1 { background:#ffab4022; color:#ffab40 }
+.tag-p2 { background:#ffd74022; color:#ffd740 }
+.tag-p3 { background:#69f0ae22; color:#69f0ae }
+.arch-diagram { background:#080a0e; border:1px solid #1e2329; border-radius:8px; padding:1.5rem; font-family:'Courier New',monospace; font-size:.8rem; line-height:1.5; white-space:pre; overflow-x:auto }
+.code { background:#080a0e; border:1px solid #1e2329; border-radius:8px; padding:1rem; font-family:'Courier New',monospace; font-size:.8rem; overflow-x:auto }
+.code .comment { color:#6b7280 }
+.code .keyword { color:#7c3aed }
+.progress-bar { height:8px; background:#1e2329; border-radius:4px; overflow:hidden; margin:.5rem 0 }
+.progress-fill { height:100%; border-radius:4px; transition:width .5s }
+.progress-fill.critical { background:linear-gradient(90deg,#ff5252,#ff8a80) }
+.progress-fill.high { background:linear-gradient(90deg,#ffab40,#ffd740) }
+.progress-fill.medium { background:linear-gradient(90deg,#ffd740,#fff176) }
+.progress-fill.done { background:linear-gradient(90deg,#00bfa5,#69f0ae) }
+.flex { display:flex; gap:.5rem; flex-wrap:wrap }
+.mt { margin-top:1rem }
+.mb { margin-bottom:1rem }
+.toc { background:#11151c; border:1px solid #1e2329; border-radius:12px; padding:1.5rem; margin:1.5rem 0 }
+.toc a { color:#00bfa5; text-decoration:none; display:block; padding:.25rem 0; font-size:.9rem }
+.toc a:hover { color:#69f0ae }
+.toc .sub { padding-left:1.5rem; color:#9ca3af; font-size:.85rem }
+</style></head><body>
+
+<h1>SRE Platform V3.2 &mdash; 深度优化建议报告</h1>
+<p class="subtitle">基于修正后的代码库 —— 2026-06-01 —— <span style="color:#00bfa5">9/9 安全修正已验证通过</span></p>
+
+<!-- Verification Banner -->
+<div class="fix-banner">
+  <div class="check">&#10004;</div>
+  <div>
+    <strong style="color:#00bfa5;font-size:1.1rem">所有 9 项安全与运行时修正已确认生效</strong><br>
+    <span style="color:#9ca3af;font-size:.85rem">
+      <span class="badge">CRITICAL-01</span>Fernet 密码加密
+      <span class="badge">CRITICAL-02</span>Shell 注入修复 (create_subprocess_exec)
+      <span class="badge">CRITICAL-03</span>FusionSphere HTTPS 固定
+      <span class="badge">CRITICAL-04</span>JWT 认证全覆盖
+      <span class="badge">CRITICAL-05</span>NameError 修复
+      <span class="badge">CRITICAL-06</span>迁移命令可分派
+      <span class="badge">P1</span>敏感字段脱敏 / LIKE 跳脱 / XML 跳脱
+    </span>
+  </div>
+</div>
+
+<div class="toc">
+<strong style="color:#e0e0e0">目录</strong>
+<a href="#sec1">1. 架构层面优化</a>
+<a href="#sec2">2. 可观测性 (Observability)</a>
+<a href="#sec3">3. 性能与缓存</a>
+<a href="#sec4">4. 弹性与韧性 (Resilience)</a>
+<a href="#sec5">5. 安全纵深防御</a>
+<a href="#sec6">6. 操作执行器 (Operation Executor)</a>
+<a href="#sec7">7. 平台适配器 (Platform Adapter)</a>
+<a href="#sec8">8. 数据库与Schema优化</a>
+<a href="#sec9">9. 数据驱动架构</a>
+<a href="#sec10">10. CI/CD 与交付管线</a>
+<a href="#sec11">11. 前端架构优化</a>
+<a href="#sec12">12. 容器化与部署优化</a>
+<a href="#sec13">13. 配置管理演化</a>
+<a href="#sec14">14. 运营成熟度模型</a>
+<a href="#sec15">15. 技术债务路线图</a>
+<a href="#sec16">16. 最终建议总结</a>
+</div>
+
+<h2 id="sec1">1. 架构层面优化</h2>
+
+<div class="section">
+<h3>1.1 状态管理：内存状态 → 可水平扩展</h3>
+<table>
+<tr><th>组件</th><th>当前</th><th>问题</th><th>建议</th><th>优先级</th></tr>
+<tr>
+  <td>ChatService 对话上下文</td>
+  <td>OrderedDict (内存, TTL=2h, Max=1000)</td>
+  <td>进程重启丢失；多 Worker 负载均衡导致上下文漂移</td>
+  <td>Redis 存储，按 conversation_id 分片，TTL 可配</td>
+  <td><span class="tag tag-p0">P0</span></td>
+</tr>
+<tr>
+  <td>OperationExecutor._running</td>
+  <td>dict[str, ExecutionResult] (内存)</td>
+  <td>Worker 重启后运行中的操作成为孤儿</td>
+  <td>Redis 存储 + 后台 reaper 清理过期条目</td>
+  <td><span class="tag tag-p0">P0</span></td>
+</tr>
+<tr>
+  <td>MigrationEngine._plans</td>
+  <td>dict[str, MigrationPlan] (内存)</td>
+  <td>中途中止迁移，VM 状态不一致</td>
+  <td>DB 持久化迁移计划，每步完成后更新状态</td>
+  <td><span class="tag tag-p0">P0</span></td>
+</tr>
+<tr>
+  <td>Conversation 消息</td>
+  <td>JSONB 数组 (conversations.messages)</td>
+  <td>大对话 (>1000条) 每次更新重写整个数组，性能灾难</td>
+  <td>拆分为独立的 <code>conversation_messages</code> 表，FK 关联</td>
+  <td><span class="tag tag-p1">P1</span></td>
+</tr>
+</table>
+</div>
+
+<div class="section">
+<h3>1.2 依赖注入完整性</h3>
+<table>
+<tr><th>组件</th><th>当前注入方式</th><th>建议</th><th>优先级</th></tr>
+<tr><td>DashboardService</td><td>内部手动 <code>DashboardService(self._session)</code></td><td>移入 dependencies.py 统一管理</td><td><span class="tag tag-p1">P1</span></td></tr>
+<tr><td>MigrationEngine</td><td>模块级 <code>engine = MigrationEngine()</code> 单例</td><td>添加 <code>MigrationEngineDep</code> DI 依赖</td><td><span class="tag tag-p1">P1</span></td></tr>
+<tr><td>ChatService</td><td>模块级 <code>chat_service = ChatService()</code></td><td>工厂函数返回实例，支持测试注入双工</td><td><span class="tag tag-p1">P1</span></td></tr>
+<tr><td>Redis 客户端</td><td>各服务自行创建/无 DI</td><td>添加 <code>get_redis()</code> 依赖，生命周期随 app lifespan</td><td><span class="tag tag-p1">P1</span></td></tr>
+<tr><td>请求绑定 Logger</td><td>各服务 <code>structlog.get_logger(__name__)</code></td><td>提供注入 request_id、user 的日志依赖</td><td><span class="tag tag-p2">P2</span></td></tr>
+</table>
+</div>
+
+<div class="section">
+<h3>1.3 应用生命周期管理</h3>
+<div class="code">
+<span class="comment"># 当前问题：关闭时未等待运行中操作完成</span><br>
+<span class="keyword">async def</span> lifespan(app):<br>
+&nbsp;&nbsp;<span class="keyword">yield</span><br>
+&nbsp;&nbsp;<span class="keyword">await</span> _engine.dispose()  <span class="comment"># 若有运行中的 subprocess 则成为孤儿</span>
+</div>
+<br>
+<strong>建议改进：</strong>
+<ul style="list-style:none;padding-left:0">
+<li>&#9654; 启动：创建 Redis 连接池 → 注册适配器 → 预热缓存 → 声明就绪</li>
+<li>&#9654; 关闭：等待运作中操作完成 (30s timeout) → 关闭后台任务 → 关闭 Redis → 关闭 DB</li>
+<li>&#9654; 添加 SIGTERM/SIGINT 处理器，确保容器收到信号后优雅退出</li>
+</ul>
+</div>
+
+<h2 id="sec2">2. 可观测性 (Observability) — 全新引入</h2>
+
+<div class="section">
+<p style="color:#ff5252;font-weight:600;margin-bottom:.75rem">作为 SRE 平台，自身可观测性缺失是一个根本性缺口。</p>
+<table>
+<tr><th>维度</th><th>当前状态</th><th>建议工具</th><th>优先级</th></tr>
+<tr><td>分布式追踪 (Tracing)</td><td>无</td><td>OpenTelemetry: auto-instrument FastAPI + SQLAlchemy + Redis + httpx</td><td><span class="tag tag-p0">P0</span></td></tr>
+<tr><td>指标收集 (Metrics)</td><td>无</td><td>prometheus-fastapi-instrumentator: request count/duration/latency histogram</td><td><span class="tag tag-p0">P0</span></td></tr>
+<tr><td>结构化告警 (Alerting)</td><td>无</td><td>基于 error_code 分类，每个唯一 code 对应一个 runbook</td><td><span class="tag tag-p1">P1</span></td></tr>
+<tr><td>健康检查完备性</td><td>仅 DB + Redis</td><td>添加平台适配器连接健康检查、磁盘空间、subprocess 可用性</td><td><span class="tag tag-p1">P1</span></td></tr>
+<tr><td>审计日志可搜索性</td><td>原始 SQL 查询</td><td>添加 Elasticsearch/OpenSearch 同步，支持全文搜索和过滤</td><td><span class="tag tag-p2">P2</span></td></tr>
+</table>
+
+<h3 style="margin-top:1.5rem">建议的 metrics 暴露端点</h3>
+<div class="code">
+<span class="comment"># /metrics 端点示例指标</span><br>
+sre_http_requests_total{method, endpoint, status}        <span class="comment"># 请求计数</span><br>
+sre_http_request_duration_seconds{method, endpoint}      <span class="comment"># 延迟直方</span><br>
+sre_db_pool_size, sre_db_active_connections              <span class="comment"># DB 连接池</span><br>
+sre_operations_running, sre_operations_queue_depth       <span class="comment"># 操作队列</span><br>
+sre_cache_hit_ratio                                      <span class="comment"># 缓存命中率</span><br>
+sre_platform_connections{platform_type, status}          <span class="comment"># 平台连接状态</span>
+</div>
+</div>
+
+<h2 id="sec3">3. 性能与缓存</h2>
+
+<div class="section">
+<h3>3.1 Dashboard 缓存策略</h3>
+<p>当前 <code>get_summary()</code> 每次页面加载执行 7 次独立数据库查询，没有缓存。</p>
+
+<div class="code">
+<span class="comment"># 建议：30秒 Redis 缓存</span><br>
+<span class="keyword">async def</span> get_summary(<span class="keyword">self</span>) -> DashboardSummary:<br>
+&nbsp;&nbsp;cache_key = <span class="string">"dashboard:summary"</span><br>
+&nbsp;&nbsp;cached = <span class="keyword">await</span> <span class="keyword">self</span>._redis.get(cache_key)<br>
+&nbsp;&nbsp;<span class="keyword">if</span> cached:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> DashboardSummary.model_validate_json(cached)<br>
+&nbsp;&nbsp;summary = <span class="keyword">await</span> <span class="keyword">self</span>._compute_summary()<br>
+&nbsp;&nbsp;<span class="keyword">await</span> <span class="keyword">self</span>._redis.setex(cache_key, <span class="number">30</span>, summary.model_dump_json())<br>
+&nbsp;&nbsp;<span class="keyword">return</span> summary
+</div>
+</div>
+
+<div class="section">
+<h3>3.2 操作注册表缓存</h3>
+<p>当前 109 个操作在 Python 代码中硬编码。建议迁移到 YAML 文件或数据库表并加缓存。</p>
+<table>
+<tr><th>方案</th><th>优点</th><th>缺点</th><th>推荐</th></tr>
+<tr><td>YAML 文件 + fsnotify 缓存</td><td>无需 DB 变更；热加载</td><td>无法通过 API 注册</td><td>阶段 1 采用</td></tr>
+<tr><td>DB 表 + Redis 缓存</td><td>支持运行时注册；版本化</td><td>需要 schema 扩展</td><td>阶段 2 采用</td></tr>
+</table>
+</div>
+
+<div class="section">
+<h3>3.3 数据库连接池优化</h3>
+<p>建议配置：</p>
+<div class="code">
+<span class="comment"># 根据 Worker 数量动态计算</span><br>
+workers = <span class="number">4</span><br>
+POOL_SIZE = max(<span class="number">5</span>, workers * <span class="number">4</span>)  <span class="comment"># 16</span><br>
+MAX_OVERFLOW = POOL_SIZE // <span class="number">2</span>        <span class="comment"># 8</span>
+</div>
+<p><strong>同时建议：</strong>添加 <code>DATABASE_READER_URL</code>，对 <code>GET /dashboard</code>、<code>GET /assets</code> 等只读操作使用只读副本。</p>
+</div>
+
+<h2 id="sec4">4. 弹性与韧性 (Resilience)</h2>
+
+<div class="section">
+<h3>4.1 并发控制</h3>
+<table>
+<tr><th>资源</th><th>当前限制</th><th>建议</th></tr>
+<tr><td>Subprocess 并发</td><td>无限制</td><td><code>asyncio.Semaphore(20)</code> 限制全局并发子进程数</td></tr>
+<tr><td>平台 API 调用</td><td>无限制</td><td>Token bucket 速率限制 (每个平台类型独立)</td></tr>
+<tr><td>Chat 请求</td><td>无限制</td><td>用户级速率限制 (60 req/min)</td></tr>
+<tr><td>操作执行</td><td>无限制</td><td>每个 asset 串行化执行 (避免同时 boot 和 shutdown)</td></tr>
+</table>
+</div>
+
+<div class="section">
+<h3>4.2 断路器模式</h3>
+<p>平台适配器应当支持断路器——当 vCenter 不可用时，快速失败而非等待 30 秒超时：</p>
+<div class="code">
+<span class="keyword">from</span> pybreaker <span class="keyword">import</span> CircuitBreaker<br><br>
+platform_breaker = CircuitBreaker(fail_max=<span class="number">3</span>, reset_timeout=<span class="number">60</span>)<br><br>
+<span class="keyword">async def</span> get_vm_list(<span class="keyword">self</span>):<br>
+&nbsp;&nbsp;<span class="keyword">try</span>:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return await</span> platform_breaker.call_async(<span class="keyword">self</span>._do_get_vm_list)<br>
+&nbsp;&nbsp;<span class="keyword">except</span> CircuitBreakerError:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;logger.warning(<span class="string">"vcenter_circuit_open"</span>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">raise</span> ServiceUnavailableException(<span class="string">"vCenter is unavailable"</span>)
+</div>
+</div>
+
+<div class="section">
+<h3>4.3 优雅降级</h3>
+<p>建议 Dashboard 实现部分降级：一个数据源（如 Redis）不可用时，不阻塞整个页面加载。</p>
+<div class="code">
+<span class="comment"># 每个数据源独立超时和降级</span><br>
+<span class="keyword">async def</span> get_summary(<span class="keyword">self</span>) -> DashboardSummary:<br>
+&nbsp;&nbsp;tasks = {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"assets"</span>: <span class="keyword">asyncio.create_task</span>(<span class="keyword">self</span>._count_assets()),<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"alerts"</span>: <span class="keyword">asyncio.create_task</span>(<span class="keyword">self</span>._count_alerts()),<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"ops"</span>: &nbsp;&nbsp; <span class="keyword">asyncio.create_task</span>(<span class="keyword">self</span>._recent_ops()),<br>
+&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;done, pending = <span class="keyword">await</span> asyncio.wait(tasks.values(), timeout=<span class="number">5.0</span>)<br>
+&nbsp;&nbsp;<span class="comment"># 未完成的任务标记为降级，不阻塞</span><br>
+&nbsp;&nbsp;<span class="keyword">for</span> task <span class="keyword">in</span> pending:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;logger.warning(<span class="string">"dashboard_timeout"</span>, task=task)<br>
+</div>
+</div>
+
+<h2 id="sec5">5. 安全纵深防御</h2>
+
+<div class="section">
+<p style="color:#69f0ae;margin-bottom:.75rem">CRITICAL 级别漏洞已修复，以下是纵深防御改进建议。</p>
+<table>
+<tr><th>层面</th><th>当前</th><th>建议改进</th><th>优先级</th></tr>
+<tr><td>加密密钥轮换</td><td>单密钥</td><td>密钥版本化：<code>{key_id}:{ciphertext}</code> 格式，支持多密钥并行，ACTIVE_KEY_ID 控制活跃密钥</td><td><span class="tag tag-p1">P1</span></td></tr>
+<tr><td>密钥来源</td><td>环境变量</td><td>集成 HashiCorp Vault / AWS Secrets Manager，避免明文密钥进入 env</td><td><span class="tag tag-p1">P1</span></td></tr>
+<tr><td>速率限制</td><td>配置中有 <code>RATE_LIMIT_PER_MINUTE=60</code> 但未生效</td><td>实现 FastAPI 中间件 <code>slowapi</code> 或自定义 Token bucket，按用户和 IP 限流</td><td><span class="tag tag-p1">P1</span></td></tr>
+<tr><td>JWT 刷新机制</td><td>无 refresh token 轮换</td><td>实现 refresh token 旋转：每次 refresh 颁发新 token，旧 token 失效</td><td><span class="tag tag-p1">P1</span></td></tr>
+<tr><td>审计日志完整度</td><td>仅请求体</td><td>对 CRITICAL 风险操作记录变更前后的 new/old values</td><td><span class="tag tag-p2">P2</span></td></tr>
+<tr><td>CSRF 保护</td><td>无</td><td>添加 CSRF token (非 SPA + API 场景)，或对 cookie 认证方式实施 SameSite=Strict</td><td><span class="tag tag-p2">P2</span></td></tr>
+<tr><td>Secrets 扫描 CI</td><td>无</td><td>添加 git-secrets / truffleHog 到 CI pipeline 阻止密钥误提交</td><td><span class="tag tag-p2">P2</span></td></tr>
+</table>
+
+<h3>密钥轮换实现模式</h3>
+<div class="code">
+<span class="comment"># encrypt() 输出格式: {key_id}:{fernet_token}</span><br>
+KEY_STORE: dict[str, Fernet] = {}<br><br>
+<span class="keyword">def</span> encrypt(plaintext: str) -> str:<br>
+&nbsp;&nbsp;key_id = os.environ[<span class="string">"ACTIVE_KEY_ID"</span>]<br>
+&nbsp;&nbsp;token = KEY_STORE[key_id].encrypt(plaintext.encode())<br>
+&nbsp;&nbsp;<span class="keyword">return</span> <span class="string">f"<span class="string">{key_id}:{token.decode()}</span>"</span><br><br>
+<span class="keyword">def</span> decrypt(ciphertext: str) -> str:<br>
+&nbsp;&nbsp;key_id, token = ciphertext.split(<span class="string">":"</span>, <span class="number">1</span>)<br>
+&nbsp;&nbsp;<span class="keyword">return</span> KEY_STORE[key_id].decrypt(token.encode()).decode()<br><br>
+<span class="comment"># 轮换流程：</span><br>
+<span class="comment"># 1. 部署新 KEY_v2 + 设置 ACTIVE_KEY_ID=v2</span><br>
+<span class="comment"># 2. 后台任务遍历所有平台记录，用新密钥重新加密</span><br>
+<span class="comment"># 3. 确认全部迁移后，移除旧密钥配置</span>
+</div>
+</div>
+
+<h2 id="sec6">6. 操作执行器 (Operation Executor)</h2>
+
+<div class="section">
+<h3>当前发现</h3>
+<table>
+<tr><th>问题</th><th>严重度</th><th>说明</th></tr>
+<tr><td>子进程超时后未杀死进程</td><td><span class="tag tag-p0">P0</span></td><td><code>asyncio.wait_for</code> 取消协程但 <code>ping</code> 进程继续运行</td></tr>
+<tr><td>输出无大小限制</td><td><span class="tag tag-p1">P1</span></td><td><code>communicate()</code> 读取全部输出到内存，恶意命令可导致 OOM</td></tr>
+<tr><td>无资源限制</td><td><span class="tag tag-p1">P1</span></td><td>子进程没有 CPU/内存/file descriptor 限制</td></tr>
+<tr><td>port_scan 端口硬编码</td><td><span class="tag tag-p2">P2</span></td><td><code>"22", "80", "443"</code> 未使用 schema 中的 ports 参数</td></tr>
+<tr><td>计算操作仅返回 "dispatched"</td><td><span class="tag tag-p0">P0</span></td><td>平台适配器未集成，VM 操作功能不可用</td></tr>
+</table>
+</div>
+
+<h2 id="sec7">7. 平台适配器 (Platform Adapter)</h2>
+
+<div class="section">
+<div style="background:#ff525211;border:1px solid #ff525233;border-radius:8px;padding:1rem;margin-bottom:1rem">
+<strong style="color:#ff5252">核心问题：</strong> PlatformAdapter ABC 定义清晰，但尚无一个完整可用的实现。
+</div>
+
+<table>
+<tr><th>维度</th><th>状态</th><th>建议</th></tr>
+<tr><td>适配器实现</td><td>❌ 空壳</td><td>优先实现 vSphere 适配器（pyVmomi 生态最成熟），为 KVM/FusionSphere 提供模板</td></tr>
+<tr><td>插件注册系统</td><td>❌ 硬编码枚举</td><td>实现 <code>AdapterRegistry</code> 装饰器模式，第三方可注册新平台</td></tr>
+<tr><td>连接池管理</td><td>❌ 每次新建</td><td>httpx.AsyncClient 连接池复用，支持 keepalive</td></tr>
+<tr><td>连接健康状态</td><td>❌ 仅测试时标记</td><td>后台心跳检测，每 60 秒 ping 平台，更新 connected 状态</td></tr>
+<tr><td>平台凭据安全</td><td>🟡 已加密</td><td>使用 pydantic SecretStr 类型确保解密后内存中不可见</td></tr>
+</table>
+</div>
+
+<h2 id="sec8">8. 数据库与 Schema 优化</h2>
+
+<div class="section">
+<h3>8.1 分区维护自动化</h3>
+<p>当前 <code>create_monthly_partitions</code> 和 <code>drop_old_partitions</code> 函数存在但未调度。建议：</p>
+<div class="code">
+<span class="comment">-- 启用 pg_cron 扩展并添加定期任务</span><br>
+<span class="keyword">CREATE EXTENSION IF NOT EXISTS</span> pg_cron;<br><br>
+<span class="comment">-- 每月 1 日凌晨 1 点创建未来 3 个月分区</span><br>
+<span class="keyword">SELECT</span> cron.schedule(<span class="string">'create-partitions'</span>, <span class="string">'0 1 1 * *'</span>,<br>
+&nbsp;&nbsp;$$CALL create_monthly_partitions(<span class="number">3</span>)$$);<br><br>
+<span class="comment">-- 每周日删除 18 个月前分区</span><br>
+<span class="keyword">SELECT</span> cron.schedule(<span class="string">'drop-old-partitions'</span>, <span class="string">'0 3 * * 0'</span>,<br>
+&nbsp;&nbsp;$$CALL drop_old_partitions(<span class="number">18</span>)$$);
+</div>
+</div>
+
+<div class="section">
+<h3>8.2 查询性能优化</h3>
+<table>
+<tr><th>建议</th><th>预期提升</th><th>优先级</th></tr>
+<tr><td>为 JSONB 字段 (tags, metadata, extra) 添加 GIN 索引</td><td>JSON 查询速度提升 10-100x</td><td><span class="tag tag-p1">P1</span></td></tr>
+<tr><td>为 audit_logs.action 添加 BRIN 索引</td><td>分区表顺序扫描性能大幅提升</td><td><span class="tag tag-p2">P2</span></td></tr>
+<tr><td>Conversations.messages 拆分为独立表</td><td>避免千条消息写入时的 JSONB 放大</td><td><span class="tag tag-p1">P1</span></td></tr>
+<tr><td>添加 asset_metrics 分区初始数据</td><td>确保分区功能可用</td><td><span class="tag tag-p2">P2</span></td></tr>
+</table>
+</div>
+
+<h2 id="sec9">9. 数据驱动架构</h2>
+
+<div class="section">
+<p>当前硬编码数据应当迁移为数据驱动：</p>
+<table>
+<tr><th>组件</th><th>当前</th><th>建议</th><th>优先级</th></tr>
+<tr><td>Atomic Operation Registry</td><td>109 个 dataclass 硬编码在 Python 代码中</td><td>YAML 文件 + 启动时加载，或 DB 表 + 管理 API</td><td><span class="tag tag-p1">P1</span></td></tr>
+<tr><td>Chat Intent Patterns</td><td>49 条 regex 硬编码在 Python 中</td><td>JSON/YAML 配置文件，支持热加载</td><td><span class="tag tag-p1">P1</span></td></tr>
+<tr><td>Platform Adapter 类型</td><td>Enum 硬编码</td><td>运行时注册 + Discovery 机制</td><td><span class="tag tag-p2">P2</span></td></tr>
+<tr><td>Dashboard 配置</td><td>代码中定义组件</td><td>用户自定义 widgets + 配置持久化</td><td><span class="tag tag-p3">P3</span></td></tr>
+</table>
+</div>
+
+<h2 id="sec10">10. CI/CD 与交付管线</h2>
+
+<div class="section">
+<p style="color:#ff5252;font-weight:600;margin-bottom:.75rem">当前项目完全没有 CI/CD 配置，这是生产就绪的最大阻碍之一。</p>
+<div class="grid2">
+<div>
+<h3>建议 Pipeline 阶段</h3>
+<div class="code">
+<span class="comment"># .github/workflows/ci.yml</span><br>
+stages:<br>
+&nbsp;&nbsp;<span class="number">1</span>. lint &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ruff + eslint<br>
+&nbsp;&nbsp;<span class="number">2</span>. typecheck &nbsp; mypy + tsc<br>
+&nbsp;&nbsp;<span class="number">3</span>. unit-test &nbsp; pytest (BE) + vitest (FE)<br>
+&nbsp;&nbsp;<span class="number">4</span>. build &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; docker buildx<br>
+&nbsp;&nbsp;<span class="number">5</span>. int-test &nbsp;&nbsp; docker compose + pytest<br>
+&nbsp;&nbsp;<span class="number">6</span>. security &nbsp;&nbsp; trivy + git-secrets<br>
+&nbsp;&nbsp;<span class="number">7</span>. deploy &nbsp;&nbsp;&nbsp;&nbsp; staging → prod
+</div>
+</div>
+<div>
+<h3>建议 Matrix 测试</h3>
+<div class="code">
+os: [ubuntu-latest, windows-latest]<br>
+python: [3.12]<br>
+node: [20, 22]<br>
+include:<br>
+&nbsp;&nbsp;- os: ubuntu-latest<br>
+&nbsp;&nbsp;&nbsp;&nbsp;pg: [16]<br>
+&nbsp;&nbsp;- os: windows-latest<br>
+&nbsp;&nbsp;&nbsp;&nbsp;pg: [16]
+</div>
+</div>
+</div>
+</div>
+
+<h2 id="sec11">11. 前端架构优化</h2>
+
+<div class="section">
+<h3>11.1 Auth Provider 全局认证</h3>
+<p>当前前端没有统一的认证管理，token 读取分散在 <code>client.ts</code>，无刷新机制。</p>
+<div class="code">
+<span class="comment">// 建议：添加 AuthProvider + 全局 401 处理</span><br>
+<span class="keyword">function</span> AuthProvider({ children }) {<br>
+&nbsp;&nbsp;<span class="keyword">const</span> [user, setUser] = useState<User | null>(<span class="keyword">null</span>);<br>
+&nbsp;&nbsp;<span class="keyword">const</span> [token, setToken] = useState<<span class="keyword">string</span> | <span class="keyword">null</span>>(<span class="keyword">null</span>);<br><br>
+&nbsp;&nbsp;<span class="comment">// 初始化时检查 localStorage</span><br>
+&nbsp;&nbsp;<span class="comment">// axios interceptor 自动注入 token</span><br>
+&nbsp;&nbsp;<span class="comment">// 收到 401 时尝试 refresh token</span><br>
+&nbsp;&nbsp;<span class="comment">// refresh 失败则 redirect 登录页</span><br>
+}
+</div>
+</div>
+
+<div class="section">
+<h3>11.2 请求取消与超时</h3>
+<p>当前 <code>HttpClient</code> 无 <code>AbortSignal</code>，组件卸载后请求仍在进行：</p>
+<div class="code">
+<span class="keyword">class</span> HttpClient {<br>
+&nbsp;&nbsp;<span class="keyword">async</span> request<T>(endpoint, options, signal?) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">const</span> controller = <span class="keyword">new</span> AbortController();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">const</span> timeout = setTimeout(() => controller.abort(), <span class="number">30_000</span>);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">try</span> {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">const</span> res = <span class="keyword">await</span> fetch(url, { signal: signal ?? controller.signal });<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> res.json();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;} <span class="keyword">finally</span> { clearTimeout(timeout); }<br>
+&nbsp;&nbsp;}<br>
+}
+</div>
+</div>
+
+<div class="section">
+<h3>11.3 组件级代码分割</h3>
+<p>当前所有视图打包在同一个 chunk 中，建议配合 React.lazy + Suspense 分割：</p>
+<table>
+<tr><th>分割点</th><th>建议</th><th>预计节省</th></tr>
+<tr><td>ChatView (含 intent 逻辑)</td><td>lazy load</td><td>~30KB</td></tr>
+<tr><td>MigrationWizard (含迁移引擎交互)</td><td>lazy load</td><td>~25KB</td></tr>
+<tr><td>Recharts 仪表板图表</td><td>lazy load</td><td>~50KB</td></tr>
+</table>
+</div>
+
+<h2 id="sec12">12. 容器化与部署优化</h2>
+
+<div class="section">
+<h3>12.1 Dockerfile 多阶段构建</h3>
+<div class="code">
+<span class="comment"># === 构建阶段 ===</span><br>
+FROM python:3.12-slim AS builder<br>
+COPY requirements.txt .<br>
+RUN pip install --no-cache-dir -r requirements.txt<br><br>
+<span class="comment"># === 运行阶段 ===</span><br>
+FROM python:3.12-slim<br>
+RUN addgroup --system app && adduser --system --ingroup app app<br>
+COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages<br>
+COPY --chown=app:app backend /app<br>
+USER app<br>
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \<br>
+&nbsp;&nbsp;CMD curl -f http://localhost:8688/health || exit 1<br>
+EXPOSE 8688<br>
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8688", "--workers", "4"]
+</div>
+</div>
+
+<div class="section">
+<h3>12.2 Docker Compose 生产配置</h3>
+<table>
+<tr><th>配置项</th><th>当前 (开发)</th><th>建议生产 (docker-compose.prod.yml)</th></tr>
+<tr><td>镜像策略</td><td>build: .</td><td>image: registry.example.com/sre-backend:tag</td></tr>
+<tr><td>重启策略</td><td>无</td><td>restart: always</td></tr>
+<tr><td>资源限制</td><td>无</td><td>deploy.resources.limits: cpus=2, memory=4G</td></tr>
+<tr><td>日志配置</td><td>无</td><td>logging.driver: json-file, max-size: 100m</td></tr>
+<tr><td>网络隔离</td><td>默认 bridge</td><td>自定义 network + 内网隔离</td></tr>
+<tr><td>健康检查</td><td>仅 DB/Redis</td><td>所有服务 + backend HEALTHCHECK</td></tr>
+<tr><td>非 root 用户</td><td>root</td><td>USER app (非 root)</td></tr>
+<tr><td>Secrets 管理</td><td>docker-compose 明文</td><td>Docker secrets 或 .env.prod (权限 600)</td></tr>
+</table>
+</div>
+
+<h2 id="sec13">13. 配置管理演化</h2>
+
+<div class="section">
+<h3>现状与目标</h3>
+<table>
+<tr><th>当前问题</th><th>建议改进</th><th>优先级</th></tr>
+<tr><td>6 处版本声明不一致 (README 3.2, pyproject.toml 3.1.0, package.json 3.2.0, 文档 v31, config.py 3.1.0, 部署脚本 v31)</td><td>单一版本源: <code>backend/app/version.py</code> + CI 自动同步</td><td><span class="tag tag-p1">P1</span></td></tr>
+<tr><td>3 个 .env.example (root, backend, frontend) 内容不一致</td><td>合并为单一 <code>.env.example</code> 模板，分 section 标注</td><td><span class="tag tag-p2">P2</span></td></tr>
+<tr><td>配置不能分层 (dev/staging/prod)</td><td>继承式 BaseSettings 分层: <code>BaseSettings → DatabaseSettings → FullSettings</code></td><td><span class="tag tag-p2">P2</span></td></tr>
+<tr><td>端口多处不一致 (3000 vs 5173)</td><td>统一标准: 开发 3000, Docker 5173, 文档对齐</td><td><span class="tag tag-p1">P1</span></td></tr>
+</table>
+</div>
+
+<h2 id="sec14">14. 运营成熟度模型</h2>
+
+<div class="section">
+<p>以下评估每个维度的当前成熟度 (0-5):</p>
+<table>
+<tr><th>维度</th><th>当前</th><th>目标</th><th>关键措施</th></tr>
+<tr><td>可观测性</td><td><div class="progress-bar"><div class="progress-fill critical" style="width:10%"></div></div>0.5</td><td>4</td><td>OpenTelemetry + Prometheus + 结构化告警</td></tr>
+<tr><td>可靠性</td><td><div class="progress-bar"><div class="progress-fill critical" style="width:25%"></div></div>1.5</td><td>4</td><td>断路器 + 优雅降级 + 速率限制</td></tr>
+<tr><td>可扩展性</td><td><div class="progress-bar"><div class="progress-fill high" style="width:35%"></div></div>2</td><td>4</td><td>Redis 状态外移 + 无状态 Worker</td></tr>
+<tr><td>安全性</td><td><div class="progress-bar"><div class="progress-fill medium" style="width:55%"></div></div>3</td><td>5</td><td>密钥轮换 + Vault 集成 + RBAC</td></tr>
+<tr><td>可维护性</td><td><div class="progress-bar"><div class="progress-fill high" style="width:45%"></div></div>2.5</td><td>4</td><td>数据驱动操作 + 测试覆盖率 90%+</td></tr>
+<tr><td>交付自动化</td><td><div class="progress-bar"><div class="progress-fill critical" style="width:5%"></div></div>0.5</td><td>4</td><td>CI/CD Pipeline + 自动部署</td></tr>
+</table>
+</div>
+
+<h2 id="sec15">15. 技术债务路线图</h2>
+
+<div class="section">
+<h3>阶段 1 (2-3 周) — 生产就绪基础</h3>
+<table>
+<tr><th>#</th><th>事项</th><th>工时</th><th>领域</th></tr>
+<tr><td>1</td><td>Redis 状态外移: Chat Context + Operation Tracking + Migration Plan</td><td>3d</td><td>架构</td></tr>
+<tr><td>2</td><td>审计中间件 Body 消费问题验证与修复</td><td>1d</td><td>运行时</td></tr>
+<tr><td>3</td><td>OpenTelemetry APM 集成: Tracing + Metrics</td><td>3d</td><td>可观测性</td></tr>
+<tr><td>4</td><td>速率限制中间件 (slowapi 或自定义)</td><td>1d</td><td>安全</td></tr>
+<tr><td>5</td><td>子进程资源管理: 超时后 kill + Semaphore 并发限制</td><td>2d</td><td>弹性</td></tr>
+<tr><td>6</td><td>GitHub Actions CI Pipeline (lint→type→test→build→security-scan)</td><td>2d</td><td>CI/CD</td></tr>
+</table>
+
+<h3>阶段 2 (2-3 周) — 架构与性能</h3>
+<table>
+<tr><th>#</th><th>事项</th><th>工时</th><th>领域</th></tr>
+<tr><td>7</td><td>操作注册表 YAML/DB 化 + 管理 API</td><td>3d</td><td>数据驱动</td></tr>
+<tr><td>8</td><td>Dashboard 缓存 + 物化视图</td><td>2d</td><td>性能</td></tr>
+<tr><td>9</td><td>vSphere 适配器实现 (基础功能: list/start/stop VM)</td><td>5d</td><td>平台</td></tr>
+<tr><td>10</td><td>DI 整合: Dashboard/Migration/Chat/Redis</td><td>2d</td><td>架构</td></tr>
+<tr><td>11</td><td>前端 Auth Provider + 全局 401 处理</td><td>2d</td><td>前端</td></tr>
+<tr><td>12</td><td>Conversations 表规范化 (拆分 messages)</td><td>2d</td><td>数据库</td></tr>
+</table>
+
+<h3>阶段 3 (2-3 周) — 韧性 & 成熟度</h3>
+<table>
+<tr><th>#</th><th>事项</th><th>工时</th><th>领域</th></tr>
+<tr><td>13</td><td>断路器模式 + 平台适配器连接池</td><td>3d</td><td>弹性</td></tr>
+<tr><td>14</td><td>密钥轮换 + Vault 集成</td><td>3d</td><td>安全</td></tr>
+<tr><td>15</td><td>Docker 多阶段构建 + HEALTHCHECK + 非 root 用户</td><td>1d</td><td>容器</td></tr>
+<tr><td>16</td><td>Zustand persist + 页面刷新状态保持</td><td>1d</td><td>前端</td></tr>
+<tr><td>17</td><td>集成测试 + 性能测试</td><td>4d</td><td>测试</td></tr>
+<tr><td>18</td><td>优雅关闭 + 操作 drain</td><td>1d</td><td>生命周期</td></tr>
+</table>
+</div>
+
+<h2 id="sec16">16. 最终建议总结</h2>
+
+<div class="section">
+<div class="grid2">
+<div>
+<h3>立即开始 (P0 / 2-3 周)</h3>
+<ul style="list-style:none;padding-left:0">
+<li><span class="tag tag-p0" style="margin-right:.5rem">P0</span> Redis 状态外移</li>
+<li><span class="tag tag-p0" style="margin-right:.5rem">P0</span> OpenTelemetry 集成</li>
+<li><span class="tag tag-p0" style="margin-right:.5rem">P0</span> CI/CD Pipeline</li>
+<li><span class="tag tag-p0" style="margin-right:.5rem">P0</span> 平台适配器具体实现</li>
+</ul>
+</div>
+<div>
+<h3>最重要架构决策</h3>
+<ul style="list-style:none;padding-left:0">
+<li>&#9654; 是否启用 TimescaleDB 用于 metrics？</li>
+<li>&#9654; 操作注册表用 YAML 还是 DB？</li>
+<li>&#9654; 平台适配器用插件系统还是 hardcode？</li>
+<li>&#9654; 使用 LLM 替代还是增强 regex 意图识别？</li>
+</ul>
+</div>
+</div>
+
+<div style="background:#080a0e;border:1px solid #1e2329;border-radius:12px;padding:1.5rem;margin-top:1.5rem">
+<strong style="color:#00bfa5">一句话总结</strong>
+<p style="margin-top:.5rem;color:#9ca3af">
+检查 V3.2 项目拥有优秀的分层架构和先进的现代技术栈。<br><br>
+<strong style="color:#e0e0e0">优势：</strong> 架构分层清晰、异步设计成熟、类型安全意识强、平台抽象合理。<br>
+<strong style="color:#e0e0e0">差距：</strong> 可观测性为零、所有状态在内存中、无 CI/CD、平台适配器未实现。<br><br>
+从 <strong style="color:#ff5252">7.8/10</strong> 到 <strong style="color:#00bfa5">9/10</strong> 的路径清晰且可行：
+<span style="display:block;margin-top:.5rem;padding:.75rem;background:#11151c;border-radius:8px;font-size:1.1rem;text-align:center">
+&#x1f511; Redis 状态外移 → &#x1f4ca; 可观测性 → &#x1f527; 平台适配器 → &#x1f680; CI/CD → &#x26a1; 弹性韧性
+</span>
+</p>
+</div>
+</div>
+
+<p style="text-align:center;color:#6b7280;margin-top:2rem;font-size:.8rem">
+DSreport &bull; Inspection V3.2 &bull; 深度优化建议报告 &bull; 2026-06-01
+</p>
+
+</body></html>

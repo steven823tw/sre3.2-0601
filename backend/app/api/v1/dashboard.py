@@ -5,6 +5,7 @@ Provides aggregated summary and trend data for the dashboard view.
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query
+from app.dependencies import CurrentUser
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -30,6 +31,7 @@ async def _get_dashboard_service(
     ),
 )
 async def get_summary(
+    user: CurrentUser,
     service: DashboardService = Depends(_get_dashboard_service),
 ) -> DashboardSummary:
     """Build and return the dashboard summary."""
@@ -43,6 +45,7 @@ async def get_summary(
     description="Returns CPU, memory, and alert trend data for the specified number of days.",
 )
 async def get_trends(
+    user: CurrentUser,
     days: int = Query(7, ge=1, le=90, description="Number of days of trend data"),
     service: DashboardService = Depends(_get_dashboard_service),
 ) -> DashboardTrends:

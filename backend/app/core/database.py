@@ -21,49 +21,41 @@ _engine = None
 _session_factory = None
 
 
-def _get_engine():
-    """Get or create the async engine (lazy initialization).
+def _create_engine():
+    """Create a new async engine from settings."""
+    settings = get_settings()
+    url = settings.DATABASE_URL
+    if not url:
+        url = "sqlite+aiosqlite:///:memory:"
+        return create_async_engine(url, echo=settings.DB_ECHO)
+    if url.startswith("postgresql://"):
+        url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    return create_async_engine(
+        url,
+        echo=settings.DB_ECHO,
+        pool_pre_ping=True,
+        pool_size=settings.DB_POOL_SIZE,
+        max_overflow=settings.DB_MAX_OVERFLOW,
+        pool_timeout=30,
+        pool_recycle=1800,
+    )
 
-    For PostgreSQL, passes pool configuration from settings:
-    - pool_size: persistent connections (default 20)
-    - max_overflow: extra connections beyond pool_size (default 10)
-    - pool_timeout: seconds to wait for a connection (default 30)
-    - pool_recycle: seconds before recycling a connection (default 1800)
 
-    For SQLite (testing), uses NullPool with no pool configuration.
-    """
+async def _get_engine():
+    """Get or create the async engine (lazy initialization)."""
     global _engine
     if _engine is None:
-        settings = get_settings()
-        url = settings.DATABASE_URL
-        if not url:
-            # For testing, use SQLite in-memory
-            url = "sqlite+aiosqlite:///:memory:"
-            _engine = create_async_engine(
-                url,
-                echo=settings.DB_ECHO,
-            )
-        else:
-            if url.startswith("postgresql://"):
-                url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
-            _engine = create_async_engine(
-                url,
-                echo=settings.DB_ECHO,
-                pool_pre_ping=True,
-                pool_size=settings.DB_POOL_SIZE,
-                max_overflow=settings.DB_MAX_OVERFLOW,
-                pool_timeout=30,
-                pool_recycle=1800,
-            )
+        _engine = _create_engine()
     return _engine
 
 
-def _get_session_factory():
+async def _get_session_factory():
     """Get or create the session factory (lazy initialization)."""
     global _session_factory
     if _session_factory is None:
+        engine = await _get_engine()
         _session_factory = async_sessionmaker(
-            _get_engine(),
+            engine,
             class_=AsyncSession,
             expire_on_commit=False,
         )
@@ -71,12 +63,8 @@ def _get_session_factory():
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """FastAPI dependency that yields an async database session.
-
-    The session is automatically committed on success and rolled back
-    on exception.  Always closed on exit.
-    """
-    factory = _get_session_factory()
+    """FastAPI dependency that yields an async database session."""
+    factory = await _get_session_factory()
     async with factory() as session:
         try:
             yield session

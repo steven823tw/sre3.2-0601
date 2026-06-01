@@ -1,6 +1,7 @@
 """Dashboard service — aggregation logic for dashboard data."""
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timedelta, timezone
 
 import structlog
@@ -35,14 +36,27 @@ class DashboardService:
         self._operation_repo = OperationRepository(session)
 
     async def get_summary(self) -> DashboardSummary:
-        """Build the dashboard summary from multiple data sources."""
-        total_assets = await self._asset_repo.count()
-        assets_by_type_raw = await self._asset_repo.count_by_type()
-        assets_by_status_raw = await self._asset_repo.count_by_status()
-        active_alerts = await self._alert_repo.count_active()
-        alerts_by_severity_raw = await self._alert_repo.count_by_severity()
-        recent_ops = await self._operation_repo.recent(limit=5)
-        pending_ops = await self._operation_repo.count_pending()
+        """Build the dashboard summary from multiple data sources.
+
+        All repository calls are independent — execute in parallel for lower latency.
+        """
+        (
+            total_assets,
+            assets_by_type_raw,
+            assets_by_status_raw,
+            active_alerts,
+            alerts_by_severity_raw,
+            recent_ops,
+            pending_ops,
+        ) = await asyncio.gather(
+            self._asset_repo.count(),
+            self._asset_repo.count_by_type(),
+            self._asset_repo.count_by_status(),
+            self._alert_repo.count_active(),
+            self._alert_repo.count_by_severity(),
+            self._operation_repo.recent(limit=5),
+            self._operation_repo.count_pending(),
+        )
 
         assets_by_type = [AssetCountByType(**d) for d in assets_by_type_raw]
         assets_by_status = [AssetCountByStatus(**d) for d in assets_by_status_raw]
@@ -108,10 +122,8 @@ class DashboardService:
             alert_count = alert_counts.get(date_str, 0)
             alert_points.append(TrendPoint(timestamp=date_str, value=float(alert_count)))
 
-            # CPU/Memory trends: query asset metadata for real data
-            # When time-series data is available, replace with proper metric queries
-            # For now, compute averages from asset metadata if available
-            asset_count = total_assets if total_assets > 0 else 1
+            # CPU/Memory trends: placeholder until monitoring integration is available.
+            # When Prometheus/metrics API is connected, replace with real queries.
             cpu_points.append(TrendPoint(timestamp=date_str, value=0.0))
             memory_points.append(TrendPoint(timestamp=date_str, value=0.0))
 

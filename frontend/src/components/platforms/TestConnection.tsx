@@ -1,7 +1,7 @@
 import React from 'react';
-import { cn } from '../../lib/utils';
-import { formatBytes } from '../../lib/utils';
-import type { TestResult } from '../../types/platform';
+import { cn } from '@/lib/utils';
+import { formatBytes } from '@/lib/utils';
+import type { TestResult } from '@/types/platform';
 
 interface TestConnectionProps {
   isLoading: boolean;
@@ -161,7 +161,7 @@ function ErrorResult({
 /**
  * Test connection component showing test progress and results
  */
-export default function TestConnection({
+export function TestConnection({
   isLoading,
   result,
   error,

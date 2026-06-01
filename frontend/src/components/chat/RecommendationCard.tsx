@@ -27,7 +27,7 @@ export function RecommendationCard({ recommendations, onExecuteAll, onExecuteSel
       <div className="space-y-2">
         {recommendations.map((rec, index) => (
           <div
-            key={rec.id}
+            key={rec.step}
             className="flex items-start gap-3 rounded-lg bg-bg-primary/50 p-3"
           >
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/15 text-xs font-medium text-accent">
@@ -39,10 +39,10 @@ export function RecommendationCard({ recommendations, onExecuteAll, onExecuteSel
                 <span
                   className={cn(
                     "inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-medium",
-                    RISK_STYLES[rec.risk],
+                    RISK_STYLES[rec.risk_level],
                   )}
                 >
-                  {rec.risk}
+                  {rec.risk_level}
                 </span>
               </div>
               <p className="mt-0.5 text-xs text-text-secondary">{rec.description}</p>
@@ -58,7 +58,7 @@ export function RecommendationCard({ recommendations, onExecuteAll, onExecuteSel
         <Button
           size="sm"
           variant="secondary"
-          onClick={() => onExecuteSelected(recommendations.map((r) => r.id))}
+          onClick={() => onExecuteSelected(recommendations.map((r) => String(r.step)))}
           aria-label="Select and execute recommendations"
         >
           <CheckSquare className="h-3.5 w-3.5" />

@@ -1,7 +1,7 @@
 import React from 'react';
-import { cn } from '../../lib/utils';
-import { getPlatformTypeInfo, getStatusColor, formatRelativeTime } from '../../lib/utils';
-import type { Platform } from '../../types/platform';
+import { cn } from '@/lib/utils';
+import { getPlatformTypeInfo, getStatusColor, formatRelativeTime } from '@/lib/utils';
+import type { Platform } from '@/types/platform';
 
 interface PlatformCardProps {
   platform: Platform;
@@ -105,7 +105,7 @@ function ActionButton({
 /**
  * Platform card component displaying platform info and actions
  */
-export default function PlatformCard({
+export function PlatformCard({
   platform,
   onTest,
   onEdit,

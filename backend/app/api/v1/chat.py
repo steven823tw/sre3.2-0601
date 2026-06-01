@@ -7,8 +7,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from app.dependencies import ChatServiceDep, CurrentUser
 from app.schemas.chat import ChatRequest, ChatResponse
-from app.services.chat_service import chat_service
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
 
@@ -22,13 +22,13 @@ router = APIRouter(prefix="/chat", tags=["Chat"])
         "Returns detected intent and recommended operation steps."
     ),
 )
-async def send_message(data: ChatRequest) -> ChatResponse:
+async def send_message(data: ChatRequest, user: CurrentUser, svc: ChatServiceDep) -> ChatResponse:
     """Process a user message and return structured recommendations.
 
     The chat service performs rule-based intent recognition and maps
     the detected intent to atomic operations from the registry.
     """
-    return chat_service.process_message(
+    return svc.process_message(
         message=data.message,
         conversation_id=data.conversation_id,
     )

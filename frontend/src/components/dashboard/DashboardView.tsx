@@ -70,7 +70,7 @@ export function DashboardView() {
       {/* Alert summary by status */}
       <AlertSummary
         distribution={data?.alertDistribution}
-        statusCounts={undefined}
+        statusCounts={data?.statusCounts}
         isLoading={isLoading}
       />
 

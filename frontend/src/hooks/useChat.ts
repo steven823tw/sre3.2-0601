@@ -24,7 +24,14 @@ export function useChat() {
       setSessionId(data.sessionId);
       setLoading(false);
     },
-    onError: () => {
+    onError: (error: Error) => {
+      const errorMsg: ChatMessage = {
+        id: `msg-error-${Date.now()}`,
+        role: "assistant",
+        content: `⚠️ 请求失败: ${error.message || "网络错误，请重试"}`,
+        timestamp: new Date().toISOString(),
+      };
+      addMessage(errorMsg);
       setLoading(false);
     },
   });

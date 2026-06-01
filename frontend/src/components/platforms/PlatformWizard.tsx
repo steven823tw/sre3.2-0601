@@ -1,9 +1,9 @@
 import React, { useState, useCallback } from 'react';
-import { cn } from '../../lib/utils';
-import { getPlatformTypeInfo } from '../../lib/utils';
-import { useAddPlatform, useTestConnection } from '../../lib/queries';
-import TestConnection from './TestConnection';
-import type { PlatformType, PlatformConfig, TestResult } from '../../types/platform';
+import { cn } from '@/lib/utils';
+import { getPlatformTypeInfo } from '@/lib/utils';
+import { useAddPlatform } from '@/lib/queries';
+import { TestConnection } from './TestConnection';
+import type { PlatformType, PlatformConfig, TestResult } from '@/types/platform';
 
 interface PlatformWizardProps {
   isOpen: boolean;
@@ -115,9 +115,34 @@ function StepConnectionConfig({ config, onChange, onNext, onBack, isFirst, isLas
   config: Partial<PlatformConfig>; onChange: (updates: Partial<PlatformConfig>) => void;
   onNext: () => void; onBack: () => void; isFirst: boolean; isLast: boolean;
 }): React.JSX.Element {
-  const testMutation = useTestConnection();
+  const [testLoading, setTestLoading] = useState(false);
   const [testResult, setTestResult] = useState<TestResult | null>(null);
-  const handleTest = useCallback(() => { testMutation.mutate('test', { onSuccess: (result) => setTestResult(result) }); }, [testMutation]);
+  const handleTest = useCallback(async () => {
+    if (!config.host || !config.username || !config.password) return;
+    setTestLoading(true);
+    try {
+      const { addPlatform, testPlatformConnection, deletePlatform } = await import('@/api/platforms');
+      const tempPlatform = await addPlatform({
+        name: config.name || 'test-connection',
+        platform_type: config.platform_type!,
+        host: config.host,
+        port: config.port || 443,
+        username: config.username,
+        password: config.password,
+        verify_ssl: config.verify_ssl ?? true,
+      });
+      try {
+        const result = await testPlatformConnection(tempPlatform.id);
+        setTestResult(result);
+      } finally {
+        await deletePlatform(tempPlatform.id).catch(() => {});
+      }
+    } catch (err) {
+      setTestResult({ success: false, latency_ms: 0, version: '', details: {}, error: String(err) });
+    } finally {
+      setTestLoading(false);
+    }
+  }, [config]);
   const isValid = config.host && config.port && config.username && config.password && config.name;
   return (
     <div>
@@ -153,11 +178,11 @@ function StepConnectionConfig({ config, onChange, onNext, onBack, isFirst, isLas
           <span className="text-sm text-[var(--color-text-primary)]">Verify SSL certificate</span>
         </div>
         <div className="pt-2">
-          <button onClick={handleTest} disabled={!isValid || testMutation.isPending} className={cn('px-4 py-2 rounded-lg text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]', !isValid || testMutation.isPending ? 'bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] cursor-not-allowed' : 'bg-[var(--color-bg-tertiary)] text-[var(--color-text-primary)] hover:bg-[var(--color-border)]')} aria-label="Test connection">
-            {testMutation.isPending ? 'Testing...' : 'Test Connection'}
+          <button onClick={handleTest} disabled={!isValid || testLoading} className={cn('px-4 py-2 rounded-lg text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]', !isValid || testLoading ? 'bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] cursor-not-allowed' : 'bg-[var(--color-bg-tertiary)] text-[var(--color-text-primary)] hover:bg-[var(--color-border)]')} aria-label="Test connection">
+            {testLoading ? 'Testing...' : 'Test Connection'}
           </button>
         </div>
-        <TestConnection isLoading={testMutation.isPending} result={testResult} error={testMutation.error?.message || null} onRetry={handleTest} />
+        <TestConnection isLoading={testLoading} result={testResult} error={null} onRetry={handleTest} />
       </div>
       <StepNavigation onBack={onBack} onNext={onNext} isFirst={isFirst} isLast={isLast} nextDisabled={!isValid} />
     </div>
@@ -209,7 +234,7 @@ function StepConfirm({ config, syncInterval, syncScope, onSave, onBack, isFirst,
   config: Partial<PlatformConfig>; syncInterval: string; syncScope: string;
   onSave: () => void; onBack: () => void; isFirst: boolean; isLast: boolean; isSaving: boolean;
 }): React.JSX.Element {
-  const platformInfo = config.type ? getPlatformTypeInfo(config.type) : null;
+  const platformInfo = config.platform_type ? getPlatformTypeInfo(config.platform_type) : null;
   const intervalLabel = SYNC_INTERVALS.find((i) => i.value === syncInterval)?.label || syncInterval;
   const scopeLabel = SYNC_SCOPES.find((s) => s.value === syncScope)?.label || syncScope;
   return (
@@ -230,7 +255,7 @@ function StepConfirm({ config, syncInterval, syncScope, onSave, onBack, isFirst,
   );
 }
 
-export default function PlatformWizard({ isOpen, onClose, onComplete }: PlatformWizardProps): React.JSX.Element | null {
+export function PlatformWizard({ isOpen, onClose, onComplete }: PlatformWizardProps): React.JSX.Element | null {
   const [currentStep, setCurrentStep] = useState(0);
   const [platformType, setPlatformType] = useState<PlatformType | null>(null);
   const [config, setConfig] = useState<Partial<PlatformConfig>>({ verify_ssl: true });
@@ -245,7 +270,7 @@ export default function PlatformWizard({ isOpen, onClose, onComplete }: Platform
   const handleSave = useCallback(async () => {
     if (!platformType) return;
     const fullConfig: PlatformConfig = {
-      name: config.name!, type: platformType, host: config.host!, port: config.port!,
+      name: config.name!, platform_type: platformType, host: config.host!, port: config.port!,
       username: config.username!, password: config.password!, verify_ssl: config.verify_ssl ?? true,
     };
     addPlatformMutation.mutate(fullConfig, {

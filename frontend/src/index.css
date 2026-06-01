@@ -12,21 +12,8 @@
 /*  Theme color tokens (dark mode)                                     */
 /* ------------------------------------------------------------------ */
 
-:root {
-  --color-bg-primary: #0f1117;
-  --color-bg-secondary: #1a1d24;
-  --color-bg-tertiary: #22252e;
-  --color-bg-hover: #2a2d36;
-  --color-text-primary: #e0e0e0;
-  --color-text-secondary: #757575;
-  --color-accent: #00BFA5;
-  --color-accent-hover: #00E5B0;
-  --color-info: #448AFF;
-  --color-warning: #FFB300;
-  --color-danger: #FF5252;
-  --color-success: #69F0AE;
-  --color-border: #2a2d36;
-}
+@import './styles/theme.css';
+
 
 /* ------------------------------------------------------------------ */
 /*  Custom scrollbar (thin, dark)                                      */

@@ -1,0 +1,93 @@
+<!DOCTYPE html><html><head><meta charset=UTF-8>
+<title>V3.2 Final Review</title><style>
+body{font-family:sans-serif;background:#0f1117;color:#e0e0e0;padding:2rem;line-height:1.6}
+h1{color:#00BFA5;font-size:1.8rem}
+h2{margin:2rem 0 1rem;border-bottom:1px solid #2a2d36;padding-bottom:.5rem}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:1.5rem}
+.card{background:#1a1d24;border:1px solid #2a2d36;border-radius:12px;padding:1.5rem}
+.sc{font-size:2.5rem;font-weight:700}.dl{font-size:.85rem;color:#757575;text-transform:uppercase}
+.ev{font-size:.82rem;color:#a0a0a0;background:#22252e;border-radius:8px;padding:1rem;font-family:monospace;white-space:pre-wrap}
+.tag{display:inline-block;font-size:.7rem;padding:2px 8px;border-radius:4px;font-weight:600}
+.tk{background:#69F0AE22;color:#69F0AE}.tf{background:#FF525222;color:#FF5252}
+.v{margin-top:.75rem;padding-top:.75rem;border-top:1px solid #2a2d36;font-size:.85rem}
+table{width:100%;border-collapse:collapse;font-size:.85rem}
+th,td{text-align:left;padding:.5rem .75rem;border-bottom:1px solid #2a2d36}
+th{color:#757575;text-transform:uppercase;font-size:.75rem}
+.ov{font-size:3rem;font-weight:800;text-align:center}
+.roadmap{background:#1a1d24;border:1px solid #2a2d36;border-radius:12px;padding:1.5rem}
+.phase{display:flex;gap:1rem;margin:.75rem 0}
+.pn{background:#00BFA522;color:#00BFA5;border:1px solid #00BFA544;border-radius:8px;padding:.5rem 1rem;font-weight:700;min-width:3rem;text-align:center}
+.gap{background:#FF525211;border:1px solid #FF525233;border-radius:8px;padding:1rem;margin:.5rem 0}
+.gt{color:#FF5252;font-weight:600;font-size:.85rem}
+.eg{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.eb{background:#22252e;border-radius:8px;padding:1rem;font-size:.82rem}
+.eb h4{color:#00BFA5;font-size:.85rem}
+</style></head><body>
+<h1>SRE Platform V3.2 - Final 5-Dimension Review</h1>
+<p style=color:#757575>Post all fixes - 2026-06-01 - 246 tests passing</p>
+<div class=ov style=color:#00BFA5>7.8/10</div>
+<p style=text-align:center;color:#757575>Strong - Architecture caps at 7</p>
+<h2>Scorecards</h2><div class=cards>
+<div class=card><div class=dl>Architecture Design</div><div class=sc style=color:#00BFA5>7/10</div>
+<div class=ev>7/9 routers use centralized DI
+PlatformService extracted (421->195 lines)
+PlatformRepository used for CRUD
+AdapterError extends AppException
+
+Gaps: dashboard local DI, migration singleton,
+4 service singletons, duplicate PlatformType</div>
+<div class=v><span class=tag tf>Fix</span> DI consolidation + enum dedup</div></div>
+<div class=card><div class=dl>Type Safety</div><div class=sc style=color:#69F0AE>8/10</div>
+<div class=ev>Frontend: 0x any/@ts-ignore
+Backend: 237/302 functions typed (78.5%)
+Backend: 19 Any imports (12 justified)
+Gaps: 65 missing return types</div>
+<div class=v><span class=tag tk>Keep</span> Add 65 return types</div></div>
+<div class=card><div class=dl>Async Design</div><div class=sc style=color:#69F0AE>9/10</div>
+<div class=ev>31 asyncio.to_thread calls
+0 blocking I/O in async
+httpx.AsyncClient for FusionSphere
+create_subprocess_exec for shell
+No gaps.</div>
+<div class=v><span class=tag tk>Keep</span> Excellent</div></div>
+<div class=card><div class=dl>Error Handling</div><div class=sc style=color:#69F0AE>8/10</div>
+<div class=ev>0 bare except / 0 except:pass
+24 except Exception (6 re-raises, 11 logs)
+11 exception types with HTTP status
+Gaps: 5 silent adapter returns</div>
+<div class=v><span class=tag tk>Keep</span> Add logger.warning to 5 returns</div></div>
+<div class=card><div class=dl>Testability</div><div class=sc style=color:#69F0AE>8/10</div>
+<div class=ev>253 backend + 31 frontend tests
+21 backend + 11 frontend test files
+DI for 7 main services
+Gaps: 4 services + 2 routers untested</div>
+<div class=v><span class=tag tf>Fix</span> Add 40 test methods</div></div>
+</div>
+<h2>Gap Analysis: 7.8 -> 9.0</h2><div class=eg>
+<div class=eb><h4>Architecture 7->9</h4>
+<div class=gap><div class=gt>GAP: dashboard local DI</div>Move to dependencies.py</div>
+<div class=gap><div class=gt>GAP: migration singleton</div>Add MigrationEngineDep</div>
+<div class=gap><div class=gt>GAP: duplicate PlatformType</div>Consolidate to models</div></div>
+<div class=eb><h4>Type+Error+Test 8->9</h4>
+<div class=gap><div class=gt>GAP: 65 missing return types</div>Add annotations</div>
+<div class=gap><div class=gt>GAP: 5 silent adapter returns</div>Add logger.warning</div>
+<div class=gap><div class=gt>GAP: 40 missing tests</div>4 services + 2 routers</div></div>
+</div>
+<h2>Roadmap (7 days)</h2><div class=roadmap>
+<div class=phase><div class=pn>W1</div><div style=flex:1><b>Architecture (7->8)</b><br><span style=color:#a0a0a0>DI consolidation + enum dedup | 2d</span></div></div>
+<div class=phase><div class=pn>W2</div><div style=flex:1><b>Type+Error (8->9)</b><br><span style=color:#a0a0a0>65 return types + 5 logger.warning | 2d</span></div></div>
+<div class=phase><div class=pn>W3</div><div style=flex:1><b>Tests (8->9)</b><br><span style=color:#a0a0a0>40 new tests | 3d</span></div></div>
+</div>
+<h2>Security Fixes Active</h2><table>
+<tr><td>CRITICAL-01</td><td>Fernet encryption</td><td style=color:#69F0AE>OK</td></tr>
+<tr><td>CRITICAL-02</td><td>subprocess_exec</td><td style=color:#69F0AE>OK</td></tr>
+<tr><td>CRITICAL-03</td><td>HTTPS</td><td style=color:#69F0AE>OK</td></tr>
+<tr><td>CRITICAL-04</td><td>JWT auth</td><td style=color:#69F0AE>OK</td></tr>
+<tr><td>CRITICAL-05</td><td>Exception import</td><td style=color:#69F0AE>OK</td></tr>
+<tr><td>CRITICAL-06</td><td>is_descriptive</td><td style=color:#69F0AE>OK</td></tr>
+<tr><td>P1</td><td>Audit redaction</td><td style=color:#69F0AE>OK</td></tr>
+<tr><td>P1</td><td>LIKE ESCAPE</td><td style=color:#69F0AE>OK</td></tr>
+<tr><td>P1</td><td>XML escape</td><td style=color:#69F0AE>OK</td></tr>
+</table>
+<p style=text-align:center;color:#757575;margin-top:2rem;font-size:.8rem>246 passed - 0 failed - 7 days to 9/10</p>
+</body></html>

@@ -64,6 +64,9 @@ Rate Limiting:
         Default: 60
 
 Auth:
+    # --- Encryption ---
+    ENCRYPTION_KEY: str = ""  # Fernet key for encrypting platform passwords
+
     DEV_DEFAULT_USER (str): Default username for development mode.
         Only used when APP_ENV=development and Authorization header
         is not present. Set to empty string to disable dev fallback.
@@ -97,7 +100,7 @@ class Settings(BaseSettings):
 
     # --- Application ---
     APP_NAME: str = "Engineer Assist"
-    APP_VERSION: str = "3.1.0"
+    APP_VERSION: str = "3.2.0"
     APP_ENV: str = "development"  # development | staging | production
     DEBUG: bool = False
     API_V1_PREFIX: str = "/api/v1"
@@ -128,6 +131,9 @@ class Settings(BaseSettings):
     RATE_LIMIT_PER_MINUTE: int = 60
 
     # --- Auth ---
+    # --- Encryption ---
+    ENCRYPTION_KEY: str = ""  # Fernet key for encrypting platform passwords
+
     DEV_DEFAULT_USER: str = ""  # Set to "dev-user" to enable dev fallback
 
     @model_validator(mode="after")

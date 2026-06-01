@@ -1,8 +1,9 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { cn } from '../../lib/utils';
-import { useSyncPlatform } from '../../lib/queries';
-import { importDevicesCSV } from '../../api/platforms';
-import type { Platform, CSVImportMapping } from '../../types/platform';
+import { cn } from '@/lib/utils';
+import { httpClient } from '@/api/client';
+import { useSyncPlatform } from '@/lib/queries';
+import { importDevicesCSV } from '@/api/platforms';
+import type { Platform } from '@/types/platform';
 
 interface DeviceImportProps {
   isOpen: boolean;
@@ -188,12 +189,7 @@ function ManualTab({ platform, onComplete }: { platform: Platform; onComplete: (
     setSaving(true);
     setError(null);
     try {
-      const response = await fetch('/api/v1/devices/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, platform_id: platform.id }),
-      });
-      if (!response.ok) throw new Error('Failed to add device');
+      await httpClient.post('/devices/', { ...formData, platform_id: platform.id });
       onComplete();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add device');
@@ -242,7 +238,7 @@ function ManualTab({ platform, onComplete }: { platform: Platform; onComplete: (
   );
 }
 
-export default function DeviceImport({ isOpen, platform, onClose, onComplete }: DeviceImportProps): React.JSX.Element | null {
+export function DeviceImport({ isOpen, platform, onClose, onComplete }: DeviceImportProps): React.JSX.Element | null {
   const [activeTab, setActiveTab] = useState<ImportTab>('sync');
 
   if (!isOpen || !platform) return null;

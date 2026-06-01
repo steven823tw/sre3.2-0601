@@ -10,13 +10,6 @@ interface AssetRowProps {
   onClick: (asset: Asset) => void;
 }
 
-const PLATFORM_LABELS: Record<string, string> = {
-  vmware: "VMware",
-  kvm: "KVM",
-  fusioncompute: "FusionCompute",
-  "bare-metal": "Bare Metal",
-};
-
 /** Single asset row in the resource table */
 export function AssetRow({ asset, isSelected, onSelect, onClick }: AssetRowProps) {
   return (
@@ -53,7 +46,7 @@ export function AssetRow({ asset, isSelected, onSelect, onClick }: AssetRowProps
 
       {/* Platform */}
       <td className="px-4 py-3">
-        <span className="text-sm text-text-secondary">{PLATFORM_LABELS[asset.platform] ?? asset.platform}</span>
+        <span className="text-sm text-text-secondary">{getPlatformTypeInfo(asset.platform).label}</span>
       </td>
 
       {/* Status */}

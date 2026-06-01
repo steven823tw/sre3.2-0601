@@ -1,10 +1,10 @@
-import type { Platform } from "@/utils/constants";
+import type { PlatformSlug } from "@/utils/constants";
 
 export interface Asset {
   id: string;
   name: string;
   type: "vm" | "physical" | "storage";
-  platform: Platform;
+  platform: PlatformSlug;
   status: "online" | "offline" | "warning" | "error";
   os: string;
   ip: string;

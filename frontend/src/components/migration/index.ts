@@ -1,2 +1,2 @@
-export { default as MigrationWizard } from './MigrationWizard';
-export { default as MigrationHistory } from './MigrationHistory';
+export { MigrationWizard } from './MigrationWizard';
+export { MigrationHistory } from './MigrationHistory';

@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 
 from app.platforms.base import (
-    AdapterError, AuthenticationError, ConnectionError,
+    AdapterError, AuthenticationError, AdapterConnectionError,
     ConnectionTestResult, DeviceInfo, NotFoundError, OperationFailedError,
     PlatformConfig, PlatformType,
 )

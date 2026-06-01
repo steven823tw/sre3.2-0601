@@ -1,8 +1,8 @@
 import React, { useState, useCallback } from 'react';
-import { cn } from '../../lib/utils';
-import { formatDuration, formatRelativeTime, getStatusColor } from '../../lib/utils';
-import { useMigrationHistory, useRollbackMigration } from '../../lib/queries';
-import type { MigrationHistoryItem, MigrationStatus } from '../../types/platform';
+import { cn } from '@/lib/utils';
+import { formatDuration, formatRelativeTime, getStatusColor } from '@/lib/utils';
+import { useMigrationHistory, useRollbackMigration } from '@/lib/queries';
+import type { MigrationHistoryItem, MigrationStatus } from '@/types/platform';
 
 interface MigrationHistoryProps {
   onViewDetails?: (id: string) => void;
@@ -32,7 +32,7 @@ function EmptyState(): React.JSX.Element {
   );
 }
 
-export default function MigrationHistory({ onViewDetails }: MigrationHistoryProps): React.JSX.Element {
+export function MigrationHistory({ onViewDetails }: MigrationHistoryProps): React.JSX.Element {
   const { data: history, isLoading, error } = useMigrationHistory();
   const rollbackMutation = useRollbackMigration();
   const [rollingBackId, setRollingBackId] = useState<string | null>(null);

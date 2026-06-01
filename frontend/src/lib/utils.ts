@@ -34,16 +34,21 @@ export function formatDuration(seconds: number): string {
 /**
  * Format relative time from ISO string
  */
-export function formatRelativeTime(isoString: string): string {
-  const date = new Date(isoString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffSeconds = Math.floor(diffMs / 1000);
+export function formatRelativeTime(date: Date | string | number): string {
+  const now = Date.now();
+  const then = new Date(date).getTime();
+  const diffMs = now - then;
 
-  if (diffSeconds < 60) return 'just now';
-  if (diffSeconds < 3600) return `${Math.floor(diffSeconds / 60)} minutes ago`;
-  if (diffSeconds < 86400) return `${Math.floor(diffSeconds / 3600)} hours ago`;
-  return `${Math.floor(diffSeconds / 86400)} days ago`;
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHour = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHour / 24);
+
+  if (diffSec < 60) return 'just now';
+  if (diffMin < 60) return `${diffMin} minutes ago`;
+  if (diffHour < 24) return `${diffHour} hours ago`;
+  if (diffDay < 7) return `${diffDay} days ago`;
+  return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 /**
@@ -61,6 +66,8 @@ export function getPlatformTypeInfo(type: string): {
       return { label: 'KVM/QEMU', icon: 'KV', color: 'text-orange-400' };
     case 'fusionsphere':
       return { label: 'Huawei FusionSphere', icon: 'FS', color: 'text-red-400' };
+    case 'bare-metal':
+      return { label: 'Bare Metal', icon: 'BM', color: 'text-gray-400' };
     default:
       return { label: type, icon: '??', color: 'text-gray-400' };
   }
@@ -90,4 +97,26 @@ export function getStatusColor(status: string): string {
     default:
       return 'text-[var(--color-text-secondary)]';
   }
+}
+
+
+/**
+ * Format percent value
+ */
+export function formatPercent(value: number, decimals = 1): string {
+  return `${value.toFixed(decimals)}%`;
+}
+
+/**
+ * Format date/time to localized string
+ */
+export function formatDateTime(date: Date | string | number): string {
+  return new Date(date).toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
 }

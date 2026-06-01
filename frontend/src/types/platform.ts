@@ -12,19 +12,19 @@ export interface PlatformDeviceCount {
 }
 
 export interface Platform {
-  id: string;
+  id: number;
   name: string;
-  type: PlatformType;
+  platform_type: PlatformType;
   host: string;
   port: number;
-  status: PlatformStatus;
-  device_count: PlatformDeviceCount;
-  last_sync: string;
+  username: string;
+  verify_ssl: boolean;
+  connected: boolean;
 }
 
 export interface PlatformConfig {
   name: string;
-  type: PlatformType;
+  platform_type: PlatformType;
   host: string;
   port: number;
   username: string;
@@ -41,11 +41,11 @@ export interface TestResult {
 }
 
 export interface SyncResult {
-  synced: number;
-  created: number;
-  updated: number;
-  removed: number;
-  duration_ms: number;
+  status: string;
+  vms_synced: number;
+  hosts_synced: number;
+  vms_created: number;
+  hosts_created: number;
 }
 
 export interface MigrationStep {
@@ -103,10 +103,10 @@ export interface MigrationHistoryItem {
 export interface Device {
   id: string;
   name: string;
-  type: 'vm' | 'host' | 'storage';
-  platform_id: string;
+  device_type: 'vm' | 'host' | 'storage';
+  platform: string;
   status: string;
-  properties: Record<string, unknown>;
+  metadata: Record<string, unknown>;
 }
 
 export interface CSVImportMapping {

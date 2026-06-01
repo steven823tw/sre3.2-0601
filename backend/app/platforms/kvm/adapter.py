@@ -13,7 +13,7 @@ from typing import Any
 import structlog
 
 from app.platforms.base import (
-    AdapterError, AuthenticationError, ConnectionError,
+    AdapterError, AuthenticationError, AdapterConnectionError,
     ConnectionTestResult, DeviceInfo, NotFoundError,
     OperationFailedError, PlatformAdapter, PlatformConfig, PlatformType,
 )
@@ -56,8 +56,8 @@ def _domain_to_device_info(dom: Any) -> DeviceInfo:
                     break
             if ip_addr:
                 break
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("kvm_ip_extraction_failed", error=str(exc))
 
     # Parse XML for metadata
     info = dom.info()
@@ -110,17 +110,17 @@ class KVMAdapter(PlatformAdapter):
             except libvirt.libvirtError as exc:
                 if "authentication" in str(exc).lower():
                     raise AuthenticationError(f"Auth failed for {config.host}: {exc}") from exc
-                raise ConnectionError(f"Cannot connect to {config.host}: {exc}") from exc
+                raise AdapterConnectionError(f"Cannot connect to {config.host}: {exc}") from exc
 
         try:
             self._conn = await asyncio.to_thread(_connect)
             self._connected = True
             logger.info("kvm_connected", host=config.host, uri=uri)
             return True
-        except (AuthenticationError, ConnectionError):
+        except (AuthenticationError, AdapterConnectionError):
             raise
         except Exception as exc:
-            raise ConnectionError(f"Unexpected error: {exc}") from exc
+            raise AdapterConnectionError(f"Unexpected error: {exc}") from exc
 
     async def disconnect(self) -> None:
         """Disconnect from libvirt."""
@@ -172,8 +172,8 @@ class KVMAdapter(PlatformAdapter):
         """Find a domain by UUID or name."""
         try:
             return conn.lookupByUUIDString(vm_id)
-        except libvirt.libvirtError:
-            pass
+        except libvirt.libvirtError as exc:
+            logger.warning("kvm_uuid_lookup_failed", vm_id=vm_id, error=str(exc))
         try:
             return conn.lookupByName(vm_id)
         except libvirt.libvirtError as exc:
@@ -288,7 +288,8 @@ class KVMAdapter(PlatformAdapter):
 
         def _create() -> str:
             dom = self._find_domain(conn, vm_id)
-            xml = f"<domainsnapshot><name>{name}</name><description>{description}</description></domainsnapshot>"
+            from xml.sax.saxutils import escape as _xml_escape
+            xml = f"<domainsnapshot><name>{_xml_escape(name)}</name><description>{_xml_escape(description)}</description></domainsnapshot>"
             try:
                 snap = dom.snapshotCreateXML(xml)
                 return snap.getName()

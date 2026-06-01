@@ -12,12 +12,13 @@ export interface ChatMessage {
 }
 
 export interface Recommendation {
-  id: string;
+  step: number;
   title: string;
   description: string;
-  command: string;
-  risk: RiskLevel;
-  category: string;
+  action: string;
+  params: Record<string, unknown>;
+  risk_level: RiskLevel;
+  estimated_time_ms: number;
 }
 
 export interface OperationContext {

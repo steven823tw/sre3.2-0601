@@ -33,12 +33,14 @@ class AssetStatus(str, PyEnum):
 
 
 class Platform(str, PyEnum):
-    """Infrastructure platform."""
-    VSPHERE = "vSphere"
-    OPENSTACK = "OpenStack"
-    K8S = "Kubernetes"
-    PHYSICAL = "Physical"
-    OTHER = "Other"
+    """Infrastructure platform — all lowercase for consistency with PlatformType."""
+    VSPHERE = "vsphere"
+    KVM = "kvm"
+    FUSIONSPHERE = "fusionsphere"
+    OPENSTACK = "openstack"
+    K8S = "kubernetes"
+    PHYSICAL = "physical"
+    OTHER = "other"
 
 
 class Asset(Base, TimestampMixin):

@@ -108,12 +108,13 @@ class AssetService:
                 f"Action '{action}' requires confirmation. Set confirm=true."
             )
 
-        logger.info("asset_action_executed", asset_id=asset_id, action=action)
+        logger.info("asset_action_requested", asset_id=asset_id, action=action)
 
         return {
-            "success": True,
+            "success": False,
+            "status": "not_implemented",
             "action": action,
-            "message": f"Action '{action}' executed on asset '{asset.name}'",
+            "message": f"Action '{action}' requested on asset - requires platform adapter integration '{asset.name}'",
             "operation_id": None,
         }
 

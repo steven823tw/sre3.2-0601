@@ -18,8 +18,8 @@ export type AlertStatus = (typeof ALERT_STATUSES)[number];
 export const OPERATION_STATUSES = ["pending", "running", "completed", "failed", "cancelled"] as const;
 export type OperationStatus = (typeof OPERATION_STATUSES)[number];
 
-export const PLATFORMS = ["vmware", "kvm", "fusioncompute", "bare-metal"] as const;
-export type Platform = (typeof PLATFORMS)[number];
+export const PLATFORMS = ["vsphere", "kvm", "fusionsphere", "bare-metal"] as const;
+export type PlatformSlug = (typeof PLATFORMS)[number];
 
 export const RISK_LEVELS = ["low", "medium", "high", "critical"] as const;
 export type RiskLevel = (typeof RISK_LEVELS)[number];

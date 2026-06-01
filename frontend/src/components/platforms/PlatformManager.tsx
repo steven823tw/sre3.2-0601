@@ -1,33 +1,30 @@
 import React, { useState, useCallback } from 'react';
-import { cn } from '../../lib/utils';
-import { usePlatforms, useTestConnection, useSyncPlatform, useDeletePlatform } from '../../lib/queries';
-import { usePlatformStore } from '../../lib/stores';
-import PlatformCard from './PlatformCard';
-import PlatformWizard from './PlatformWizard';
-import DeviceImport from './DeviceImport';
-import type { Platform } from '../../types/platform';
+import { cn } from '@/lib/utils';
+import { usePlatforms, useSyncPlatform, useDeletePlatform } from '@/lib/queries';
+import { testPlatformConnection } from '@/api/platforms';
+import { usePlatformStore } from '@/stores/platformStore';
+import { PlatformCard } from './PlatformCard';
+import { PlatformWizard } from './PlatformWizard';
+import { DeviceImport } from './DeviceImport';
+import type { Platform } from '@/types/platform';
 
-export default function PlatformManager(): React.JSX.Element {
+export function PlatformManager(): React.JSX.Element {
   const { data: platforms, isLoading, error } = usePlatforms();
   const { wizardOpen, setWizardOpen, importDialogOpen, setImportDialogOpen, selectedPlatform, setSelectedPlatform } = usePlatformStore();
-  const testMutation = useTestConnection();
+  const [testResults, setTestResults] = useState<Record<string, string>>({});
   const syncMutation = useSyncPlatform();
   const deleteMutation = useDeletePlatform();
-  const [testResults, setTestResults] = useState<Record<string, string>>({});
 
   const handleTest = useCallback((id: string) => {
     setTestResults((prev) => ({ ...prev, [id]: 'testing' }));
-    testMutation.mutate(id, {
-      onSuccess: (result) => {
-        setTestResults((prev) => ({ ...prev, [id]: result.success ? 'success' : 'failed' }));
-        setTimeout(() => setTestResults((prev) => { const next = { ...prev }; delete next[id]; return next; }), 3000);
-      },
-      onError: () => {
-        setTestResults((prev) => ({ ...prev, [id]: 'failed' }));
-        setTimeout(() => setTestResults((prev) => { const next = { ...prev }; delete next[id]; return next; }), 3000);
-      },
+    testPlatformConnection(id).then((result) => {
+      setTestResults((prev) => ({ ...prev, [id]: result.success ? 'success' : 'failed' }));
+      setTimeout(() => setTestResults((prev) => { const next = { ...prev }; delete next[id]; return next; }), 3000);
+    }).catch(() => {
+      setTestResults((prev) => ({ ...prev, [id]: 'failed' }));
+      setTimeout(() => setTestResults((prev) => { const next = { ...prev }; delete next[id]; return next; }), 3000);
     });
-  }, [testMutation]);
+  }, []);
 
   const handleEdit = useCallback((platform: Platform) => {
     setSelectedPlatform(platform);

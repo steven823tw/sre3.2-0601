@@ -23,6 +23,7 @@ from app.models.base import Base
 os.environ["APP_ENV"] = "development"
 os.environ["DEV_DEFAULT_USER"] = "test-user"
 os.environ["JWT_SECRET_KEY"] = "test-secret-key-for-testing-only"
+os.environ["RATE_LIMIT_PER_MINUTE"] = "0"  # Disable rate limiting in tests
 
 # Use aiosqlite for in-memory async SQLite testing
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"

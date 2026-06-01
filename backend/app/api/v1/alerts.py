@@ -26,6 +26,7 @@ router = APIRouter(prefix="/alerts", tags=["Alerts"])
 )
 async def list_alerts(
     service: AlertServiceDep,
+    user: CurrentUser,
     severity: AlertSeverity | None = Query(None, description="Filter by severity"),
     status: AlertStatus | None = Query(None, description="Filter by status"),
     asset_id: int | None = Query(None, description="Filter by asset ID"),
@@ -58,6 +59,7 @@ async def list_alerts(
 async def get_alert(
     alert_id: int,
     service: AlertServiceDep,
+    user: CurrentUser,
 ) -> AlertResponse:
     alert = await service.get_alert(alert_id)
     return AlertResponse.model_validate(alert)

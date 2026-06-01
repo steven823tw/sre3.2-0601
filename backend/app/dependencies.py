@@ -8,16 +8,20 @@ import structlog
 from collections.abc import AsyncGenerator
 from typing import Annotated
 
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Depends, Header, HTTPException, Request, status
 from jose import JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
 from app.core.database import get_db
+from app.core.registry import OperationRegistry
 from app.core.security import decode_token
 from app.services.alert_service import AlertService
 from app.services.asset_service import AssetService
+from app.services.chat_service import ChatService
+from app.services.operation_executor import OperationExecutor
 from app.services.operation_service import OperationService
+from app.services.platform_service import PlatformService
 
 logger = structlog.get_logger(__name__)
 
@@ -63,7 +67,7 @@ async def get_current_user(
 
     token = authorization[7:]  # Strip "Bearer " prefix
     try:
-        payload = decode_token(token)
+        payload = decode_token(token, expected_type="access")
         username = payload.get("sub")
         if username is None:
             raise HTTPException(
@@ -71,11 +75,38 @@ async def get_current_user(
                 detail="Token does not contain a subject claim",
             )
         return str(username)
-    except JWTError as exc:
+    except (JWTError, ValueError) as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Token validation failed: {exc}",
+            detail=f"Authentication failed: {exc}",
         )
+
+
+def get_chat_service() -> ChatService:
+    """Dependency that provides the ChatService singleton.
+
+    The singleton maintains conversation context state across requests.
+    """
+    from app.services.chat_service import chat_service
+    return chat_service
+
+
+def get_operation_executor() -> OperationExecutor:
+    """Dependency that provides the OperationExecutor singleton.
+
+    The singleton tracks running operations across requests.
+    """
+    from app.services.operation_executor import operation_executor
+    return operation_executor
+
+
+def get_registry(request: Request) -> OperationRegistry:
+    """Dependency that provides the OperationRegistry from app state.
+
+    The registry is created and seeded during application lifespan
+    and stored on ``app.state.registry``.
+    """
+    return request.app.state.registry
 
 
 async def get_asset_service(
@@ -94,9 +125,17 @@ async def get_alert_service(
 
 async def get_operation_service(
     db: Annotated[AsyncSession, Depends(get_db)],
+    executor: Annotated[OperationExecutor, Depends(get_operation_executor)],
 ) -> AsyncGenerator[OperationService, None]:
     """Dependency that provides an OperationService instance."""
-    yield OperationService(db)
+    yield OperationService(db, executor)
+
+
+async def get_platform_service(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> AsyncGenerator[PlatformService, None]:
+    """Dependency that provides a PlatformService instance."""
+    yield PlatformService(db)
 
 
 # Type aliases for dependency injection in route handlers
@@ -104,3 +143,7 @@ CurrentUser = Annotated[str, Depends(get_current_user)]
 AssetServiceDep = Annotated[AssetService, Depends(get_asset_service)]
 AlertServiceDep = Annotated[AlertService, Depends(get_alert_service)]
 OperationServiceDep = Annotated[OperationService, Depends(get_operation_service)]
+PlatformServiceDep = Annotated[PlatformService, Depends(get_platform_service)]
+ChatServiceDep = Annotated[ChatService, Depends(get_chat_service)]
+OperationExecutorDep = Annotated[OperationExecutor, Depends(get_operation_executor)]
+RegistryDep = Annotated[OperationRegistry, Depends(get_registry)]

@@ -18,6 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.middleware.audit import AuditMiddleware
 from app.middleware.error_handler import register_error_handlers
+from app.middleware.rate_limit import RateLimitMiddleware
 from app.middleware.request_id import RequestIDMiddleware
 
 
@@ -52,12 +53,16 @@ def configure_logging() -> None:
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Application lifespan handler — startup and shutdown.
 
-    Startup: configure logging, log application start.
+    Startup: configure logging, seed operation registry, log application start.
     Shutdown: dispose database engine, log application stop.
     """
     configure_logging()
     logger = structlog.get_logger(__name__)
     settings = get_settings()
+
+    # Store the operation registry on app.state for DI access
+    from app.core.registry import registry as _registry
+    app.state.registry = _registry
 
     logger.info(
         "application_starting",
@@ -97,6 +102,7 @@ def create_app() -> FastAPI:
 
     # --- Middleware (order matters: last added = first executed) ---
     application.add_middleware(AuditMiddleware)
+    application.add_middleware(RateLimitMiddleware, max_per_minute=settings.RATE_LIMIT_PER_MINUTE)
     application.add_middleware(RequestIDMiddleware)
     application.add_middleware(
         CORSMiddleware,

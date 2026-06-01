@@ -1,4 +1,4 @@
-# V3.1 API 契约
+# V3.2 API 契约
 
 > 前后端分离开发的接口约定。所有端点以 `/api/v1` 为前缀。
 
@@ -69,7 +69,7 @@ X-Request-ID: <uuid>  (自动生成)
 ```json
 {
   "status": "ok",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "env": "development",
   "timestamp": "2026-05-30T10:00:00Z",
   "checks": {

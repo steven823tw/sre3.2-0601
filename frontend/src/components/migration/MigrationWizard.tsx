@@ -1,9 +1,9 @@
 import React, { useState, useCallback } from 'react';
-import { cn } from '../../lib/utils';
-import { formatDuration } from '../../lib/utils';
-import { usePlatforms, useVMs, usePlanMigration, useExecuteMigration, useMigrationStatus } from '../../lib/queries';
-import { useMigrationStore } from '../../lib/stores';
-import type { Platform, Device, MigrationPlan, MigrationExecution } from '../../types/platform';
+import { cn } from '@/lib/utils';
+import { formatDuration } from '@/lib/utils';
+import { usePlatforms, useVMs, usePlanMigration, useExecuteMigration, useMigrationStatus } from '@/lib/queries';
+import { useMigrationStore } from '@/stores/migrationStore';
+import type { Platform, Device, MigrationPlan, MigrationExecution } from '@/types/platform';
 
 interface MigrationWizardProps {
   isOpen: boolean;
@@ -266,7 +266,7 @@ function StepExecution({ executionId, onComplete, onBack }: {
   );
 }
 
-export default function MigrationWizard({ isOpen, onClose, onComplete }: MigrationWizardProps): React.JSX.Element | null {
+export function MigrationWizard({ isOpen, onClose, onComplete }: MigrationWizardProps): React.JSX.Element | null {
   const [currentStep, setCurrentStep] = useState(0);
   const { selectedVM, setSelectedVM, targetPlatform, setTargetPlatform, currentPlan, setCurrentPlan, execution, setExecution, reset } = useMigrationStore();
   const planMutation = usePlanMigration();

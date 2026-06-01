@@ -13,7 +13,7 @@ import httpx
 import structlog
 
 from app.platforms.base import (
-    AdapterError, AuthenticationError, ConnectionError,
+    AdapterConnectionError, AdapterError, AuthenticationError,
     ConnectionTestResult, DeviceInfo, NotFoundError,
     OperationFailedError, PlatformAdapter, PlatformConfig, PlatformType,
 )
@@ -36,8 +36,10 @@ class FusionSphereAdapter(PlatformAdapter):
     async def connect(self, config: PlatformConfig) -> bool:
         """Authenticate and get a session token."""
         self._config = config
-        port = config.port if config.port != 443 else 7443
-        scheme = "https" if config.verify_ssl else "http"
+        # Use configured port; default to 7443 for FusionSphere if port is default 443
+        port = config.port
+        # Always use HTTPS; verify_ssl only controls certificate verification
+        scheme = "https"
         self._base_url = f"{scheme}://{config.host}:{port}"
         self._client = httpx.AsyncClient(
             base_url=self._base_url,
@@ -62,7 +64,7 @@ class FusionSphereAdapter(PlatformAdapter):
         except AuthenticationError:
             raise
         except httpx.HTTPError as exc:
-            raise ConnectionError(f"Cannot connect to {config.host}: {exc}") from exc
+            raise AdapterConnectionError(f"Cannot connect to {config.host}: {exc}") from exc
 
     async def disconnect(self) -> None:
         """Logout and close the HTTP client."""

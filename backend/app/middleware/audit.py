@@ -11,6 +11,7 @@ avoid excessive write volume.
 """
 from __future__ import annotations
 
+import json
 import re
 import time
 from typing import Any
@@ -86,6 +87,44 @@ def _extract_action_and_resource(path: str, method: str) -> tuple[str, str | Non
     return action, resource_type, resource_id
 
 
+
+# Sensitive field names to redact from audit logs
+_SENSITIVE_FIELDS = frozenset({
+    "password", "passwd", "secret", "token", "api_key", "apikey",
+    "authorization", "credential", "encrypted_password", "private_key",
+    "access_token", "refresh_token", "connection_string", "dsn",
+})
+
+
+def _redact_sensitive(body):
+    """Redact sensitive fields from a JSON request body string.
+
+    Recursively walks nested dicts and lists to find and redact
+    any key whose lowercase name matches _SENSITIVE_FIELDS.
+    """
+    if not body:
+        return body
+    try:
+        data = json.loads(body)
+        _redact_recursive(data)
+        return json.dumps(data, ensure_ascii=False)
+    except (json.JSONDecodeError, TypeError):
+        return body
+
+
+def _redact_recursive(obj):
+    """Recursively redact sensitive keys in nested structures."""
+    if isinstance(obj, dict):
+        for key in obj:
+            if key.lower() in _SENSITIVE_FIELDS:
+                obj[key] = "[REDACTED]"
+            else:
+                _redact_recursive(obj[key])
+    elif isinstance(obj, list):
+        for item in obj:
+            _redact_recursive(item)
+
+
 class AuditMiddleware(BaseHTTPMiddleware):
     """Logs ALL requests to structured logger; persists mutating requests to database.
 
@@ -109,8 +148,8 @@ class AuditMiddleware(BaseHTTPMiddleware):
                 body_bytes = await request.body()
                 if len(body_bytes) > 10240:
                     body_bytes = body_bytes[:10240] + b"...[truncated]"
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning("audit_body_read_failed", error=str(exc))
 
         response = await call_next(request)
         duration_ms = int((time.monotonic() - start) * 1000)
@@ -153,7 +192,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
                     status_code=response.status_code,
                     ip_address=request.client.host if request.client else None,
                     user_agent=request.headers.get("user-agent"),
-                    request_body=body_bytes.decode("utf-8", errors="replace") if body_bytes else None,
+                    request_body=_redact_sensitive(body_bytes.decode("utf-8", errors="replace")) if body_bytes else None,
                     duration_ms=duration_ms,
                 )
             except Exception:
@@ -200,7 +239,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
         from app.core.database import _get_session_factory
         from app.models.audit_log import AuditLog
 
-        factory = _get_session_factory()
+        factory = await _get_session_factory()
         async with factory() as session:
             try:
                 audit_entry = AuditLog(

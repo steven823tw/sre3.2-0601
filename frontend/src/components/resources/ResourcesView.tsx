@@ -1,6 +1,8 @@
 import { useState, useCallback } from "react";
 
 import { useAssets } from "@/hooks/useAssets";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { httpClient } from "@/api/client";
 import { useFilterStore } from "@/stores/filterStore";
 import { Tabs } from "@/components/ui/Tabs";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -51,9 +53,38 @@ export function ResourcesView() {
     setSelectedAsset(asset);
   }, []);
 
+  const queryClient = useQueryClient();
+  const shutdownMutation = useMutation({
+    mutationFn: (ids: string[]) => Promise.all(ids.map(id => httpClient.post('/assets/' + id + '/actions', { action: "shutdown", confirm: true }))),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["assets"] }); setSelectedIds(new Set()); },
+  });
+  const bootMutation = useMutation({
+    mutationFn: (ids: string[]) => Promise.all(ids.map(id => httpClient.post('/assets/' + id + '/actions', { action: "boot" }))),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["assets"] }); setSelectedIds(new Set()); },
+  });
+  const deleteMutation = useMutation({
+    mutationFn: (ids: string[]) => Promise.all(ids.map(id => httpClient.delete('/assets/' + id))),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["assets"] }); setSelectedIds(new Set()); },
+  });
+
   const handleClearSelection = useCallback(() => {
     setSelectedIds(new Set());
   }, []);
+
+  const handleBatchShutdown = useCallback(() => {
+    const ids = Array.from(selectedIds);
+    if (ids.length > 0) shutdownMutation.mutate(ids);
+  }, [selectedIds, shutdownMutation]);
+
+  const handleBatchBoot = useCallback(() => {
+    const ids = Array.from(selectedIds);
+    if (ids.length > 0) bootMutation.mutate(ids);
+  }, [selectedIds, bootMutation]);
+
+  const handleBatchDelete = useCallback(() => {
+    const ids = Array.from(selectedIds);
+    if (ids.length > 0 && confirm(`Delete ${ids.length} asset(s)?`)) deleteMutation.mutate(ids);
+  }, [selectedIds, deleteMutation]);
 
   if (error) {
     return (
@@ -95,9 +126,9 @@ export function ResourcesView() {
         selectedCount={selectedIds.size}
         onClearSelection={handleClearSelection}
         onMigrate={() => {}}
-        onShutdown={() => {}}
-        onBoot={() => {}}
-        onDelete={() => {}}
+        onShutdown={handleBatchShutdown}
+        onBoot={handleBatchBoot}
+        onDelete={handleBatchDelete}
       />
 
       {/* Asset table */}

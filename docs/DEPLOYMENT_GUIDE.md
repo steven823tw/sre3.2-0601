@@ -1,6 +1,6 @@
-# V3.1 SRE Platform — 部署指南
+# V3.2 SRE Platform — 部署指南
 
-> **版本**: 3.1.0 | **更新**: 2026-05-31
+> **版本**: 3.2.0 | **更新**: 2026-05-31
 
 ---
 
@@ -55,8 +55,8 @@
 
 ```bash
 # 1. 克隆项目
-git clone <repository-url> v3.1
-cd v3.1
+git clone <repository-url> v3.2
+cd v3.2
 
 # 2. 运行部署脚本
 # Linux/Mac:
@@ -189,8 +189,8 @@ After=network.target postgres.service redis.service
 [Service]
 Type=simple
 User=sre
-WorkingDirectory=/opt/v3.1/backend
-ExecStart=/opt/v3.1/backend/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8688
+WorkingDirectory=/opt/v3.2/backend
+ExecStart=/opt/v3.2/backend/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8688
 Restart=always
 RestartSec=5
 
@@ -268,7 +268,7 @@ kubectl get pods -n sre-platform
 | 变量 | 说明 | 默认值 | 必填 |
 |------|------|--------|------|
 | `APP_NAME` | 应用名称 | Engineer Assist | 否 |
-| `APP_VERSION` | 版本号 | 3.1.0 | 否 |
+| `APP_VERSION` | 版本**: 3.2.0 | 否 |
 | `APP_ENV` | 环境 | development | 否 |
 | `DEBUG` | 调试模式 | false | 否 |
 | `DATABASE_URL` | 数据库连接 | (空=SQLite) | 生产必填 |
@@ -316,7 +316,7 @@ curl http://localhost:8688/ready
 ```bash
 # 1. 健康检查
 curl http://localhost:8688/health
-# 期望: {"status":"ok","version":"3.1.0"}
+# 期望: {"status":"ok","version":"3.2.0"}
 
 # 2. 就绪检查
 curl http://localhost:8688/ready
@@ -382,7 +382,7 @@ docker compose logs --tail=100 backend | grep -i error
 
 ```bash
 # 进入数据库
-docker compose exec postgres psql -U v31 -d v31_sre
+docker compose exec postgres psql -U v32 -d v32_sre
 
 # 查看表
 \dt
@@ -418,7 +418,7 @@ rm -rf secrets/
 ### A. 文件结构
 
 ```
-v3.1/
+v3.2/
 ├── scripts/
 │   ├── deploy-linux.sh      # Linux 部署脚本
 │   ├── deploy-windows.ps1   # Windows 部署脚本

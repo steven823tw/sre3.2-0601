@@ -1,5 +1,7 @@
 import { useState, useCallback } from "react";
 import { useOperations } from "@/hooks/useOperations";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { httpClient } from "@/api/client";
 import { Tabs } from "@/components/ui/Tabs";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SkeletonCard } from "@/components/ui/Skeleton";
@@ -27,9 +29,27 @@ export function OperationsView() {
 
   const operations = data?.items ?? [];
 
+  const queryClient = useQueryClient();
+  const approveMutation = useMutation({
+    mutationFn: (id: string) => httpClient.put('/operations/' + id + '/approve', {}),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["operations"] }),
+  });
+  const rejectMutation = useMutation({
+    mutationFn: (id: string) => httpClient.put('/operations/' + id + '/reject', { reason: 'Rejected by operator' }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["operations"] }),
+  });
+
   const handleViewDetail = useCallback((op: Operation) => {
     setDetailOp(op);
   }, []);
+
+  const handleApprove = useCallback((id: string) => {
+    approveMutation.mutate(id);
+  }, [approveMutation]);
+
+  const handleReject = useCallback((id: string) => {
+    rejectMutation.mutate(id);
+  }, [rejectMutation]);
 
   if (error) {
     return (
@@ -73,6 +93,8 @@ export function OperationsView() {
               key={op.id}
               operation={op}
               onViewDetail={handleViewDetail}
+              onApprove={handleApprove}
+              onReject={handleReject}
             />
           ))}
         </div>

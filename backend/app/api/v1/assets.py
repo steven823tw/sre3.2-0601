@@ -28,6 +28,7 @@ router = APIRouter(prefix="/assets", tags=["Assets"])
 )
 async def list_assets(
     service: AssetServiceDep,
+    user: CurrentUser,
     asset_type: AssetType | None = Query(None, description="Filter by asset type"),
     platform: Platform | None = Query(None, description="Filter by platform"),
     status: AssetStatus | None = Query(None, description="Filter by status"),
@@ -62,6 +63,7 @@ async def list_assets(
 async def get_asset(
     asset_id: int,
     service: AssetServiceDep,
+    user: CurrentUser,
 ) -> AssetResponse:
     asset = await service.get_asset(asset_id)
     return AssetResponse.model_validate(asset)

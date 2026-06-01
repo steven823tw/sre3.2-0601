@@ -34,7 +34,7 @@ export function FilterBar() {
       >
         <option value="">All Platforms</option>
         {PLATFORMS.map((p) => (
-          <option key={p} value={p}>{p}</option>
+          <option key={p} value={p}>{getPlatformTypeInfo(p).label}</option>
         ))}
       </select>
 

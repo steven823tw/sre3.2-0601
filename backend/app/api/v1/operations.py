@@ -27,6 +27,7 @@ router = APIRouter(prefix="/operations", tags=["Operations"])
 )
 async def list_operations(
     service: OperationServiceDep,
+    user: CurrentUser,
     status: OperationStatus | None = Query(None, description="Filter by status"),
     asset_id: int | None = Query(None, description="Filter by asset ID"),
     page: int = Query(1, ge=1, description="Page number"),
@@ -57,6 +58,7 @@ async def list_operations(
 async def get_operation(
     operation_id: int,
     service: OperationServiceDep,
+    user: CurrentUser,
 ) -> OperationResponse:
     operation = await service.get_operation(operation_id)
     return OperationResponse.model_validate(operation)

@@ -1,4 +1,4 @@
-# V3.1 平台 SDK 与软件版本研究报告
+# V3.2 平台 SDK 与软件版本研究报告
 
 > **日期**: 2026-06-01 | **基于实际网络研究**
 
@@ -326,7 +326,7 @@ pip install --upgrade pip setuptools
 # 2. PostgreSQL 升级
 pg_dumpall > backup.sql
 # 安装 PostgreSQL 17
-pg_restore -d v31_sre backup.sql
+pg_restore -d v32_sre backup.sql
 
 # 3. Node.js 升级
 nvm install 22

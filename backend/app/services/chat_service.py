@@ -6,7 +6,9 @@ to structured operation recommendations.  No LLM dependency.
 from __future__ import annotations
 
 import re
+from collections import OrderedDict
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import structlog
@@ -243,12 +245,15 @@ class ChatService:
         "empty": "请输入您的问题或操作需求。",
     }
 
+    MAX_CONTEXTS = 1000
+    CONTEXT_TTL = timedelta(hours=2)
+
     def __init__(self) -> None:
         self._recognizer = IntentRecognizer()
-        self._contexts: dict[int, ConversationContext] = {}
+        self._contexts: OrderedDict[int, tuple[datetime, ConversationContext]] = OrderedDict()
 
     def _get_context(self, conversation_id: int | None) -> ConversationContext:
-        """Get or create conversation context.
+        """Get or create conversation context with TTL-based eviction.
 
         Args:
             conversation_id: The conversation identifier.
@@ -258,9 +263,22 @@ class ChatService:
         """
         if conversation_id is None:
             return ConversationContext()
-        if conversation_id not in self._contexts:
-            self._contexts[conversation_id] = ConversationContext()
-        return self._contexts[conversation_id]
+        now = datetime.now(timezone.utc)
+        # Evict expired entries
+        expired = [k for k, (ts, _) in self._contexts.items() if now - ts > self.CONTEXT_TTL]
+        for k in expired:
+            del self._contexts[k]
+        # LRU eviction if over capacity
+        while len(self._contexts) >= self.MAX_CONTEXTS:
+            self._contexts.popitem(last=False)
+        # Get or create
+        if conversation_id in self._contexts:
+            ts, ctx = self._contexts.pop(conversation_id)
+            self._contexts[conversation_id] = (now, ctx)
+            return ctx
+        ctx = ConversationContext()
+        self._contexts[conversation_id] = (now, ctx)
+        return ctx
 
     def _assess_risk(self, recommendations: list[RecommendationStep]) -> str:
         """Assess the overall risk of a set of recommendations.

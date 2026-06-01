@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+backend/__pycache__/
+**/__pycache__/
+
+# Build artifacts
+frontend/dist/
+backend/dist/
+*.egg-info/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+
+# Docs
+docs/
+DSreport/
+*.md
+
+# Environment
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test
+backend/tests/
+frontend/e2e/

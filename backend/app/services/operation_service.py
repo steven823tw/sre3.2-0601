@@ -14,6 +14,7 @@ from app.exceptions import ConflictException, NotFoundException, ValidationExcep
 from app.models.operation import Operation, OperationStatus, OperationStep, StepStatus
 from app.repositories.operation_repo import OperationRepository
 from app.schemas.operation import OperationCreateRequest
+from app.services.operation_executor import OperationExecutor
 
 logger = structlog.get_logger(__name__)
 
@@ -21,8 +22,9 @@ logger = structlog.get_logger(__name__)
 class OperationService:
     """Business logic for operation lifecycle and workflow."""
 
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(self, session: AsyncSession, executor: OperationExecutor | None = None) -> None:
         self._repo = OperationRepository(session)
+        self._executor = executor
 
     async def list_operations(
         self,
@@ -151,7 +153,9 @@ class OperationService:
             NotFoundException: If the operation does not exist.
             ConflictException: If the operation is not in 'approved' status.
         """
-        from app.services.operation_executor import operation_executor
+        executor = self._executor
+        if executor is None:
+            from app.services.operation_executor import operation_executor as executor
 
         operation = await self.get_operation(operation_id)
 
@@ -174,7 +178,7 @@ class OperationService:
         )
 
         # Execute steps with rollback support
-        results = await operation_executor.execute_with_rollback(
+        results = await executor.execute_with_rollback(
             steps=list(operation.steps),
             params=operation.params,
         )

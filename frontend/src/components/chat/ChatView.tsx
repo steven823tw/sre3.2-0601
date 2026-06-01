@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { cn } from "@/utils/cn";
 import { useChat } from "@/hooks/useChat";
+import { httpClient } from "@/api/client";
 import { MessageBubble } from "./MessageBubble";
 import { QuickActions } from "./QuickActions";
 import { RecommendationCard } from "./RecommendationCard";
@@ -14,6 +15,7 @@ export function ChatView() {
   const { messages, isLoading, send, addMessage } = useChat();
   const [input, setInput] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [selectedRecIds, setSelectedRecIds] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -69,10 +71,12 @@ export function ChatView() {
     .find((m) => m.role === "assistant" && m.operation);
 
   const handleExecuteAll = useCallback(() => {
+    setSelectedRecIds(lastAssistantWithRecs?.recommendations?.map(r => String(r.step)) ?? []);
     setConfirmOpen(true);
-  }, []);
+  }, [lastAssistantWithRecs]);
 
-  const handleExecuteSelected = useCallback((_ids: string[]) => {
+  const handleExecuteSelected = useCallback((ids: string[]) => {
+    setSelectedRecIds(ids);
     setConfirmOpen(true);
   }, []);
 
@@ -81,48 +85,42 @@ export function ChatView() {
     if (!lastAssistantWithRecs?.recommendations) return;
 
     try {
-      // Call backend to create operation
-      const response = await fetch('/api/v1/operations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: `AI 推荐操作: ${lastAssistantWithRecs.intent || 'diagnose'}`,
-          description: lastAssistantWithRecs.content,
-          steps: lastAssistantWithRecs.recommendations.map((rec, i) => ({
-            step_number: i + 1,
-            action: rec.action,
-            description: rec.description,
-            params: rec.params || {},
-          })),
-        }),
+      const result = await httpClient.post<{ success: boolean; data?: { id: string }; error?: { message: string } }>('/operations', {
+        title: `AI 推荐操作: ${lastAssistantWithRecs.intent || 'diagnose'}`,
+        description: lastAssistantWithRecs.content,
+        steps: lastAssistantWithRecs.recommendations.filter(rec => selectedRecIds.includes(String(rec.step))).map((rec, i) => ({
+          step_number: i + 1,
+          action: rec.action,
+          description: rec.description,
+          params: rec.params || {},
+        })),
       });
 
-      const result = await response.json();
       if (result.success) {
-        // Add success message to chat
         addMessage({
           id: `msg-ops-${Date.now()}`,
           role: 'assistant',
-          content: `✅ 操作已创建，工单编号: ${result.data?.id || 'N/A'}`,
+          content: `操作已创建，工单编号: ${result.data?.id || 'N/A'}`,
           timestamp: new Date().toISOString(),
         });
       } else {
         addMessage({
           id: `msg-err-${Date.now()}`,
           role: 'assistant',
-          content: `❌ 操作创建失败: ${result.error?.message || '未知错误'}`,
+          content: `操作创建失败: ${result.error?.message || '未知错误'}`,
           timestamp: new Date().toISOString(),
         });
       }
     } catch (error) {
+      const message = error instanceof Error ? error.message : '网络错误';
       addMessage({
         id: `msg-err-${Date.now()}`,
         role: 'assistant',
-        content: `❌ 操作创建失败: 网络错误`,
+        content: `操作创建失败: ${message}`,
         timestamp: new Date().toISOString(),
       });
     }
-  }, [lastAssistantWithRecs, addMessage]);
+  }, [lastAssistantWithRecs, addMessage, selectedRecIds]);
 
   return (
     <div className="flex h-full flex-col">

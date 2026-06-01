@@ -40,7 +40,7 @@ export function AlertsView() {
   const activeCount = statusCounts?.active ?? 0;
 
   const severityTabs = [
-    { id: "all", label: "All", count: alerts.length },
+    { id: "all", label: "All", count: Object.values(counts ?? {}).reduce((a, b) => a + b, 0) },
     ...SEVERITY_LEVELS.map((s) => ({
       id: s,
       label: s,

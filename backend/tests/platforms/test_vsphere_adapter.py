@@ -6,7 +6,7 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.platforms.base import (
-    AdapterError, AuthenticationError, ConnectionError,
+    AdapterError, AuthenticationError, AdapterConnectionError,
     ConnectionTestResult, DeviceInfo, NotFoundError, OperationFailedError,
     PlatformConfig, PlatformType,
 )
@@ -68,7 +68,7 @@ class TestVSphereAdapter:
         adapter = VSphereAdapter()
         with patch("app.platforms.vsphere.adapter._PYVMOMI_AVAILABLE", True):
             with patch("app.platforms.vsphere.adapter.SmartConnect", side_effect=Exception("Invalid login")):
-                with pytest.raises(ConnectionError):
+                with pytest.raises(AdapterConnectionError):
                     await adapter.connect(config)
 
     @pytest.mark.asyncio

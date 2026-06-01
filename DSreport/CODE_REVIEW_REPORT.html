@@ -1,0 +1,2047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inspection V3.2 — Code Review Report</title>
+<style>
+/* ============================================================
+   Inspection V3.2 — Code Review Report
+   Professional Dark Theme — SRE DevOps Architecture Audit
+   ============================================================ */
+:root {
+  --bg-primary: #0d1117;
+  --bg-secondary: #161b22;
+  --bg-tertiary: #21262d;
+  --bg-card: #1c2128;
+  --border-default: #30363d;
+  --border-muted: #21262d;
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-muted: #6e7681;
+  --accent-blue: #58a6ff;
+  --accent-green: #3fb950;
+  --accent-orange: #d2991d;
+  --accent-red: #f85149;
+  --accent-purple: #bc8cff;
+  --accent-cyan: #39d2c0;
+  --accent-pink: #db61a2;
+  --severity-critical: #f85149;
+  --severity-high: #d2991d;
+  --severity-medium: #58a6ff;
+  --severity-low: #8b949e;
+  --score-bg: #161b22;
+  --tag-bg: #1f2937;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Navigation */
+#top-nav {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: rgba(13, 17, 23, 0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-default);
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  height: 52px;
+  overflow-x: auto;
+}
+#top-nav::-webkit-scrollbar { height: 2px; }
+#top-nav::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 4px; }
+
+#top-nav .nav-brand {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--accent-blue);
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+#top-nav a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 13px;
+  white-space: nowrap;
+  transition: color 0.2s;
+  padding: 4px 0;
+  border-bottom: 2px solid transparent;
+}
+#top-nav a:hover { color: var(--text-primary); border-bottom-color: var(--accent-blue); }
+
+/* Layout */
+.container { max-width: 1200px; margin: 0 auto; padding: 0 40px; }
+
+/* Section spacing */
+.section { padding: 64px 0; border-bottom: 1px solid var(--border-muted); }
+.section:last-child { border-bottom: none; }
+
+.section-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  letter-spacing: -0.01em;
+}
+.section-subtitle {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 32px;
+}
+
+/* Hero / Executive Summary */
+.hero {
+  padding: 80px 0 64px;
+  text-align: center;
+  border-bottom: 1px solid var(--border-muted);
+  background: linear-gradient(180deg, rgba(88,166,255,0.03) 0%, transparent 100%);
+}
+.hero h1 {
+  font-size: 48px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 12px;
+  background: linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-cyan) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero .subhead {
+  font-size: 16px;
+  color: var(--text-secondary);
+  margin-bottom: 40px;
+}
+
+/* Score Circle */
+.score-display {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+}
+.score-circle {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: conic-gradient(var(--accent-orange) 0deg, var(--accent-orange) 244.8deg, var(--bg-tertiary) 244.8deg, var(--bg-tertiary) 360deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.score-circle::after {
+  content: '';
+  position: absolute;
+  width: 118px;
+  height: 118px;
+  border-radius: 50%;
+  background: var(--bg-primary);
+}
+.score-value {
+  position: relative;
+  z-index: 1;
+  font-size: 48px;
+  font-weight: 800;
+  color: var(--accent-orange);
+  letter-spacing: -0.03em;
+}
+.score-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* Metric Row */
+.metrics-row {
+  display: flex;
+  justify-content: center;
+  gap: 48px;
+  margin-top: 40px;
+  flex-wrap: wrap;
+}
+.metric-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  padding: 24px 32px;
+  text-align: center;
+  min-width: 140px;
+}
+.metric-value {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+.metric-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.metric-critical { color: var(--accent-red); }
+.metric-high { color: var(--accent-orange); }
+.metric-medium { color: var(--accent-blue); }
+.metric-low { color: var(--text-secondary); }
+
+/* Cards */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  padding: 28px;
+  margin-bottom: 20px;
+}
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.card-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Severity badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.badge-critical { background: rgba(248,81,73,0.15); color: var(--accent-red); }
+.badge-high { background: rgba(210,153,29,0.15); color: var(--accent-orange); }
+.badge-medium { background: rgba(88,166,255,0.15); color: var(--accent-blue); }
+.badge-low { background: rgba(139,148,158,0.15); color: var(--text-secondary); }
+.badge-pass { background: rgba(63,185,80,0.15); color: var(--accent-green); }
+
+/* Tag / Chip */
+.tag {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--tag-bg);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-default);
+}
+
+/* Issue list */
+.issue-list { list-style: none; }
+.issue-item {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  padding: 24px;
+  margin-bottom: 16px;
+  border-left: 4px solid var(--border-default);
+  transition: border-color 0.2s, background 0.2s;
+}
+.issue-item:hover { background: var(--bg-secondary); }
+.issue-item.critical { border-left-color: var(--accent-red); }
+.issue-item.high { border-left-color: var(--accent-orange); }
+.issue-item.medium { border-left-color: var(--accent-blue); }
+.issue-item.low { border-left-color: var(--text-muted); }
+.issue-item .issue-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.issue-item .issue-id {
+  font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', Consolas, monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-blue);
+}
+.issue-item .issue-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: 1;
+}
+.issue-item .issue-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+.issue-item .issue-loc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 8px;
+  font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', Consolas, monospace;
+}
+
+/* Code blocks */
+code {
+  font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', Consolas, monospace;
+  font-size: 13px;
+  background: var(--bg-tertiary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--accent-cyan);
+}
+
+/* Tables */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+thead th {
+  text-align: left;
+  padding: 12px 16px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 2px solid var(--border-default);
+}
+tbody td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-muted);
+  color: var(--text-primary);
+}
+tbody tr:hover { background: var(--bg-secondary); }
+tbody td:first-child { font-weight: 500; }
+
+/* Risk Matrix */
+.risk-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 2px;
+  background: var(--border-default);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: 16px;
+}
+.risk-cell {
+  background: var(--bg-card);
+  padding: 16px 12px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+}
+.risk-cell.header { background: var(--bg-tertiary); color: var(--text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+.risk-cell.critical-cell { background: rgba(248,81,73,0.2); color: var(--accent-red); }
+.risk-cell.high-cell { background: rgba(210,153,29,0.2); color: var(--accent-orange); }
+.risk-cell.medium-cell { background: rgba(88,166,255,0.15); color: var(--accent-blue); }
+.risk-cell.low-cell { background: rgba(139,148,158,0.1); color: var(--text-secondary); }
+.risk-cell.empty { background: var(--bg-card); }
+
+/* Chart containers */
+.chart-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  padding: 28px;
+}
+.chart-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: var(--text-primary);
+}
+
+/* Two-column grid */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+@media (max-width: 800px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+/* Progress bar */
+.progress-bar-outer {
+  width: 100%;
+  height: 8px;
+  background: var(--bg-tertiary);
+  border-radius: 100px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+.progress-bar-inner {
+  height: 100%;
+  border-radius: 100px;
+  transition: width 0.6s ease;
+}
+
+/* Architecture diagram */
+.arch-layers {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 20px 0;
+}
+.arch-layer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.arch-layer .layer-name { font-weight: 700; min-width: 120px; }
+.arch-layer .layer-desc { color: var(--text-secondary); font-size: 13px; }
+
+/* Footer */
+.footer {
+  padding: 48px 0;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 12px;
+  border-top: 1px solid var(--border-muted);
+}
+
+/* TOC */
+.toc-list { list-style: none; columns: 2; column-gap: 40px; }
+.toc-list li { margin-bottom: 8px; }
+.toc-list a { color: var(--accent-blue); text-decoration: none; font-size: 14px; }
+.toc-list a:hover { text-decoration: underline; }
+@media (max-width: 600px) { .toc-list { columns: 1; } }
+
+/* Accordion style collapsible */
+.collapsible-header {
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Highlight numbers */
+.num { font-variant-numeric: tabular-nums; }
+
+/* Inline SVG charts */
+.chart-svg { width: 100%; max-width: 600px; margin: 0 auto; display: block; }
+
+/* Separator */
+.sep { border: none; border-top: 1px solid var(--border-muted); margin: 32px 0; }
+
+/* Strengths grid */
+.strength-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+.strength-card {
+  background: var(--bg-card);
+  border: 1px solid rgba(63,185,80,0.2);
+  border-radius: 10px;
+  padding: 20px;
+}
+.strength-card .strength-num {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--accent-green);
+  opacity: 0.5;
+}
+.strength-card .strength-text {
+  font-size: 14px;
+  color: var(--text-primary);
+  margin-top: 8px;
+  line-height: 1.5;
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================ -->
+<!-- TOP NAVIGATION -->
+<!-- ============================================================ -->
+<nav id="top-nav">
+  <span class="nav-brand">Inspection V3.2 Audit</span>
+  <a href="#executive-summary">Executive Summary</a>
+  <a href="#project-overview">Project Overview</a>
+  <a href="#architecture">Architecture</a>
+  <a href="#security">Security (P0)</a>
+  <a href="#runtime-errors">Runtime Errors (P0)</a>
+  <a href="#backend">Backend (P1)</a>
+  <a href="#frontend">Frontend (P1)</a>
+  <a href="#medium">Medium (P2)</a>
+  <a href="#infrastructure">Infrastructure</a>
+  <a href="#testing">Test Coverage</a>
+  <a href="#action-items">Action Items</a>
+  <a href="#risk-matrix">Risk Matrix</a>
+  <a href="#strengths">Strengths</a>
+</nav>
+
+<!-- ============================================================ -->
+<!-- HERO / EXECUTIVE SUMMARY -->
+<!-- ============================================================ -->
+<section id="executive-summary" class="hero">
+  <div class="container">
+    <h1>Inspection V3.2<br>Code Review Report</h1>
+    <p class="subhead">Full-Stack SRE Engineer Assist Platform &middot; Security-Focused Architecture Audit &middot; June 2026</p>
+
+    <div class="score-display">
+      <div class="score-circle">
+        <span class="score-value">6.8</span>
+      </div>
+      <span class="score-label">Overall Score / 10</span>
+    </div>
+
+    <div class="metrics-row">
+      <div class="metric-card">
+        <div class="metric-value metric-critical">7</div>
+        <div class="metric-label">P0 Critical</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value metric-high">13</div>
+        <div class="metric-label">P1 High</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value metric-medium">9</div>
+        <div class="metric-label">P2 Medium</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value metric-low">7</div>
+        <div class="metric-label">P3 Low / Infra</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value" style="color:var(--accent-green)">246</div>
+        <div class="metric-label">Tests Passing</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- TABLE OF CONTENTS -->
+<!-- ============================================================ -->
+<section class="section">
+  <div class="container">
+    <h2 class="section-title">Table of Contents</h2>
+    <p class="section-subtitle">Complete report structure</p>
+    <ul class="toc-list">
+      <li><a href="#executive-summary">1. Executive Summary</a></li>
+      <li><a href="#project-overview">2. Project Overview</a></li>
+      <li><a href="#architecture">3. Architecture Assessment</a></li>
+      <li><a href="#security">4. Security Findings (P0)</a></li>
+      <li><a href="#runtime-errors">5. Critical Runtime Errors (P0)</a></li>
+      <li><a href="#backend">6. Backend Code Review (P1)</a></li>
+      <li><a href="#frontend">7. Frontend Code Review (P1)</a></li>
+      <li><a href="#medium">8. Medium Priority Issues (P2)</a></li>
+      <li><a href="#infrastructure">9. Infrastructure &amp; DevOps</a></li>
+      <li><a href="#testing">10. Test Coverage Analysis</a></li>
+      <li><a href="#action-items">11. Prioritized Action Items</a></li>
+      <li><a href="#risk-matrix">12. Risk Matrix</a></li>
+      <li><a href="#strengths">13. Strengths Identified</a></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- PROJECT OVERVIEW -->
+<!-- ============================================================ -->
+<section id="project-overview" class="section">
+  <div class="container">
+    <h2 class="section-title">Project Overview</h2>
+    <p class="section-subtitle">Scope, technology stack, and scale metrics</p>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-blue)" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          <span class="card-title">Backend Stack</span>
+        </div>
+        <table>
+          <tr><td>Language</td><td>Python 3.12</td></tr>
+          <tr><td>Framework</td><td>FastAPI 0.115</td></tr>
+          <tr><td>ORM</td><td>SQLAlchemy 2.0 (async)</td></tr>
+          <tr><td>Database</td><td>PostgreSQL 16</td></tr>
+          <tr><td>Cache</td><td>Redis 7</td></tr>
+          <tr><td>Logging</td><td>structlog</td></tr>
+          <tr><td>Source Files</td><td>52 Python files</td></tr>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/><line x1="12" y1="22" x2="12" y2="15.5"/></svg>
+          <span class="card-title">Frontend Stack</span>
+        </div>
+        <table>
+          <tr><td>Library</td><td>React 18.3</td></tr>
+          <tr><td>Language</td><td>TypeScript 5.6</td></tr>
+          <tr><td>Build</td><td>Vite 6</td></tr>
+          <tr><td>State / Data</td><td>Zustand 5, TanStack Query 5</td></tr>
+          <tr><td>Styling</td><td>Tailwind CSS 3.4</td></tr>
+          <tr><td>Charts</td><td>Recharts 2.13</td></tr>
+          <tr><td>Source Files</td><td>60+ TS/CSS files</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="grid-3" style="margin-top:20px;">
+      <div class="card" style="text-align:center;">
+        <div style="font-size:40px;font-weight:800;color:var(--accent-purple);">11</div>
+        <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Database Tables</div>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div style="font-size:40px;font-weight:800;color:var(--accent-purple);">109</div>
+        <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Atomic SRE Operations</div>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div style="font-size:40px;font-weight:800;color:var(--accent-purple);">3</div>
+        <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Virtualization Platforms</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:20px;">
+      <div class="card-header">
+        <span class="card-title">Virtualization Platform Support</span>
+      </div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        <span class="tag" style="font-size:13px;padding:6px 14px;">vSphere (pyVmomi SDK)</span>
+        <span class="tag" style="font-size:13px;padding:6px 14px;">KVM (libvirt Python)</span>
+        <span class="tag" style="font-size:13px;padding:6px 14px;">FusionSphere (REST API)</span>
+      </div>
+      <p style="margin-top:12px;font-size:13px;color:var(--text-secondary);">Cross-platform VM migration engine with adapter pattern for unified operations across all three platforms.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- ARCHITECTURE ASSESSMENT -->
+<!-- ============================================================ -->
+<section id="architecture" class="section">
+  <div class="container">
+    <h2 class="section-title">Architecture Assessment</h2>
+    <p class="section-subtitle">Layered architecture analysis, patterns, and concerns</p>
+
+    <!-- Layered Architecture Diagram -->
+    <div class="card" style="margin-bottom:24px;">
+      <div class="card-header"><span class="card-title">System Architecture — Layer Diagram</span></div>
+      <svg width="100%" viewBox="0 0 800 420" xmlns="http://www.w3.org/2000/svg">
+        <!-- Presentation Layer -->
+        <rect x="40" y="30" width="720" height="55" rx="8" fill="#1c2840" stroke="#30363d" stroke-width="1.5"/>
+        <text x="60" y="55" fill="#58a6ff" font-size="13" font-weight="700">Presentation Layer</text>
+        <text x="60" y="73" fill="#8b949e" font-size="11">React 18.3 + TypeScript 5.6 · Vite 6 · TanStack Query 5 · Zustand 5 · Tailwind CSS 3.4 · Recharts 2.13</text>
+
+        <!-- API Layer -->
+        <rect x="40" y="105" width="720" height="55" rx="8" fill="#1c2840" stroke="#30363d" stroke-width="1.5"/>
+        <text x="60" y="130" fill="#58a6ff" font-size="13" font-weight="700">API / Router Layer</text>
+        <text x="60" y="148" fill="#8b949e" font-size="11">FastAPI 0.115 · REST Endpoints · WebSocket (Chat) · FastAPI Depends() DI · CORS/APIRouter</text>
+
+        <!-- Service Layer -->
+        <rect x="40" y="180" width="720" height="55" rx="8" fill="#1c2840" stroke="#30363d" stroke-width="1.5"/>
+        <text x="60" y="205" fill="#58a6ff" font-size="13" font-weight="700">Service Layer</text>
+        <text x="60" y="223" fill="#8b949e" font-size="11">ChatService · PlatformService · DashboardService · OperationService · AssetService · AlertService · AuditService</text>
+
+        <!-- Repository Layer -->
+        <rect x="40" y="255" width="720" height="55" rx="8" fill="#1c2840" stroke="#30363d" stroke-width="1.5"/>
+        <text x="60" y="280" fill="#58a6ff" font-size="13" font-weight="700">Repository / Data Access Layer</text>
+        <text x="60" y="298" fill="#8b949e" font-size="11">SQLAlchemy 2.0 AsyncSession · PlatformRepository · AssetRepository · AlertRepository · OperationRepository</text>
+
+        <!-- Platform Adapter Layer -->
+        <rect x="40" y="330" width="720" height="55" rx="8" fill="#1c2840" stroke="#30363d" stroke-width="1.5"/>
+        <text x="60" y="355" fill="#58a6ff" font-size="13" font-weight="700">Platform Adapter Layer (Adapter Pattern)</text>
+        <text x="60" y="373" fill="#8b949e" font-size="11">vSphere Adapter (pyVmomi) · KVM Adapter (libvirt) · FusionSphere Adapter (REST / httpx)</text>
+
+        <!-- Data Sources -->
+        <rect x="40" y="405" width="240" height="15" rx="4" fill="#21262d" stroke="#30363d" stroke-width="1"/>
+        <text x="160" y="415" fill="#8b949e" font-size="10" text-anchor="middle">PostgreSQL 16</text>
+        <rect x="300" y="405" width="240" height="15" rx="4" fill="#21262d" stroke="#30363d" stroke-width="1"/>
+        <text x="420" y="415" fill="#8b949e" font-size="10" text-anchor="middle">Redis 7</text>
+        <rect x="560" y="405" width="200" height="15" rx="4" fill="#21262d" stroke="#30363d" stroke-width="1"/>
+        <text x="660" y="415" fill="#8b949e" font-size="10" text-anchor="middle">Hypervisor APIs</text>
+      </svg>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Architecture Strengths</span></div>
+        <ul style="list-style:none;font-size:13px;color:var(--text-secondary);line-height:2;">
+          <li style="color:var(--accent-green);">+</span> Clean layered architecture with clear dependency direction</li>
+          <li style="color:var(--accent-green);">+</span> Adapter pattern for multi-platform virtualization</li>
+          <li style="color:var(--accent-green);">+</span> Centralized DI via FastAPI <code>Depends()</code></li>
+          <li style="color:var(--accent-green);">+</span> Atomic operation registry (109 operations, 9 categories)</li>
+          <li style="color:var(--accent-green);">+</span> Custom exception hierarchy with consistent error responses</li>
+          <li style="color:var(--accent-green);">+</span> Structured logging throughout (structlog)</li>
+          <li style="color:var(--accent-green);">+</span> 57 database indexes, partitioning, and triggers</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Architecture Concerns</span></div>
+        <ul style="list-style:none;font-size:13px;color:var(--text-secondary);line-height:2;">
+          <li style="color:var(--accent-red);">&#x2715;</span> Module-level singletons tied to import time</li>
+          <li style="color:var(--accent-red);">&#x2715;</span> In-memory state without persistence (chat contexts, ops tracking)</li>
+          <li style="color:var(--accent-red);">&#x2715;</span> No database migration tool (Alembic not configured)</li>
+          <li style="color:var(--accent-orange);">&#x2715;</span> Dual Platform enum types (mixed-case vs lowercase)</li>
+          <li style="color:var(--accent-orange);">&#x2715;</span> Chat intent regex engine (97 patterns) not well-structured</li>
+          <li style="color:var(--accent-orange);">&#x2715;</span> No request timeout on frontend HttpClient</li>
+          <li style="color:var(--accent-orange);">&#x2715;</span> URL filter state not persisted (only in Zustand)</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Atomic Operation Registry -->
+    <div class="card" style="margin-top:20px;">
+      <div class="card-header"><span class="card-title">Atomic Operation Registry — 109 Operations</span></div>
+      <table>
+        <thead><tr><th>Category</th><th>Count</th><th>Examples</th></tr></thead>
+        <tbody>
+          <tr><td>VM Lifecycle</td><td class="num">24</td><td>create_vm, delete_vm, start_vm, stop_vm, restart_vm, suspend_vm, resize_vm</td></tr>
+          <tr><td>Network</td><td class="num">16</td><td>create_network, delete_network, attach_nic, detach_nic, configure_firewall</td></tr>
+          <tr><td>Storage</td><td class="num">14</td><td>create_datastore, delete_datastore, attach_disk, detach_disk, extend_volume</td></tr>
+          <tr><td>Snapshot</td><td class="num">12</td><td>create_snapshot, delete_snapshot, restore_snapshot, list_snapshots</td></tr>
+          <tr><td>Monitoring</td><td class="num">11</td><td>get_vm_performance, get_host_health, check_resource_usage</td></tr>
+          <tr><td>Migration</td><td class="num">10</td><td>migrate_vm, clone_vm, export_vm, import_vm, validate_migration_target</td></tr>
+          <tr><td>Host</td><td class="num">9</td><td>get_host_info, list_hosts, enter_maintenance, exit_maintenance</td></tr>
+          <tr><td>Security</td><td class="num">8</td><td>rotate_credentials, audit_access, check_compliance</td></tr>
+          <tr><td>Platform Admin</td><td class="num">5</td><td>register_platform, deregister_platform, test_connection</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECURITY FINDINGS (P0) -->
+<!-- ============================================================ -->
+<section id="security" class="section">
+  <div class="container">
+    <h2 class="section-title">Critical Security Findings</h2>
+    <p class="section-subtitle">P0 issues requiring immediate remediation before production deployment</p>
+
+    <!-- Security Overview SVG Chart -->
+    <div class="chart-box" style="margin-bottom:24px;">
+      <div class="chart-title">Security Finding Severity Distribution</div>
+      <svg width="100%" viewBox="0 0 700 220" xmlns="http://www.w3.org/2000/svg">
+        <!-- Bar 1: CRITICAL - 5 -->
+        <text x="80" y="30" fill="#8b949e" font-size="12">P0 &mdash; Critical</text>
+        <rect x="80" y="40" width="550" height="30" rx="6" fill="#21262d"/>
+        <rect x="80" y="40" width="550" height="30" rx="6" fill="#f85149" opacity="0.8"/>
+        <text x="645" y="60" fill="#f85149" font-size="13" font-weight="700">5 issues</text>
+        <!-- Bar 2: HIGH - 3 -->
+        <text x="80" y="95" fill="#8b949e" font-size="12">P1 &mdash; High</text>
+        <rect x="80" y="105" width="550" height="30" rx="6" fill="#21262d"/>
+        <rect x="80" y="105" width="330" height="30" rx="6" fill="#d2991d" opacity="0.8"/>
+        <text x="645" y="125" fill="#d2991d" font-size="13" font-weight="700">3 issues</text>
+        <!-- Bar 3: MEDIUM - 2 -->
+        <text x="80" y="160" fill="#8b949e" font-size="12">P2 &mdash; Medium</text>
+        <rect x="80" y="170" width="550" height="30" rx="6" fill="#21262d"/>
+        <rect x="80" y="170" width="220" height="30" rx="6" fill="#58a6ff" opacity="0.8"/>
+        <text x="645" y="190" fill="#58a6ff" font-size="13" font-weight="700">2 issues</text>
+      </svg>
+    </div>
+
+    <ul class="issue-list">
+      <!-- CRITICAL-01 -->
+      <li class="issue-item critical">
+        <div class="issue-header">
+          <span class="issue-id">CRITICAL-01</span>
+          <span class="issue-title">Plaintext Password Exposure via Multiple Vectors</span>
+          <span class="badge badge-critical">P0 &middot; Auth</span>
+        </div>
+        <p class="issue-desc">
+          Platform credentials are stored with Fernet encryption, but the <code>crypto.py</code> encrypt function silently passes empty strings through without encryption.
+          More critically, <code>_safe_decrypt()</code> in <code>platform_service.py</code> implements a plaintext fallback path &mdash; if decryption fails for any reason,
+          it returns the original (potentially plaintext) value. This means a corrupt or missing Fernet key results in raw plaintext passwords being returned.
+        </p>
+        <p class="issue-desc" style="margin-top:8px;">
+          The <code>AuditMiddleware</code> logs full request bodies including sensitive data. Fields like <code>auth_token</code>, <code>bearer</code>, and <code>session_key</code>
+          are not present in the <code>_SENSITIVE_FIELDS</code> set, allowing tokens and keys to be written to audit logs in plaintext.
+        </p>
+        <p class="issue-loc">Files: backend/app/core/crypto.py, backend/app/services/platform_service.py, backend/app/middleware/audit.py</p>
+      </li>
+
+      <!-- CRITICAL-02 -->
+      <li class="issue-item critical">
+        <div class="issue-header">
+          <span class="issue-id">CRITICAL-02</span>
+          <span class="issue-title">Shell Command Injection in Operation Executor</span>
+          <span class="badge badge-critical">P0 &middot; Injection</span>
+        </div>
+        <p class="issue-desc">
+          <code>operation_executor.py</code> constructs shell commands using Python f-strings and executes them with <code>subprocess.run(command, shell=True, ...)</code>.
+          User-controlled parameters (e.g., target hostnames, VM names) are interpolated directly into the command string.
+          The validation regex <code>^[a-zA-Z0-9][a-zA-Z0-9._-]*$</code> allows underscores in hostnames (non-RFC compliant, but common in internal networks)
+          yet does <strong>not</strong> prevent shell metacharacters like backticks, <code>$()</code>, or semicolons when combined with other bypass techniques.
+        </p>
+        <p class="issue-desc" style="margin-top:8px;">
+          <strong>Impact:</strong> An authenticated user with operation execution privileges could achieve remote code execution on the backend server
+          by crafting a malicious target parameter. The <code>shell=True</code> flag passes the command through <code>/bin/sh -c</code>, enabling full shell interpretation.
+        </p>
+        <p class="issue-loc">File: backend/app/services/operation_executor.py &mdash; _build_command() uses f-strings with shell=True</p>
+      </li>
+
+      <!-- CRITICAL-03 -->
+      <li class="issue-item critical">
+        <div class="issue-header">
+          <span class="issue-id">CRITICAL-03</span>
+          <span class="issue-title">FusionSphere Adapter SSL Verification Disabled</span>
+          <span class="badge badge-critical">P0 &middot; TLS/MITM</span>
+        </div>
+        <p class="issue-desc">
+          The FusionSphere REST API adapter in <code>platforms/fusionsphere/adapter.py</code> configures the <code>httpx</code> client with <code>verify=False</code>,
+          disabling SSL/TLS certificate verification. This allows any attacker positioned between the application and the FusionSphere endpoint
+          to perform man-in-the-middle attacks, intercepting authentication credentials, VM migration data, and all administrative commands.
+        </p>
+        <p class="issue-desc" style="margin-top:8px;">
+          <strong>Impact:</strong> Complete compromise of FusionSphere platform communication. Given the migration engine transfers VM configurations
+          and potentially credentials between platforms, this is a severe data exposure risk.
+        </p>
+        <p class="issue-loc">File: backend/app/platforms/fusionsphere/adapter.py &mdash; httpx.AsyncClient(verify=False)</p>
+      </li>
+
+      <!-- CRITICAL-04 -->
+      <li class="issue-item critical">
+        <div class="issue-header">
+          <span class="issue-id">CRITICAL-04</span>
+          <span class="issue-title">Unauthenticated API Endpoints (Missing CurrentUser)</span>
+          <span class="badge badge-critical">P0 &middot; Access Control</span>
+        </div>
+        <p class="issue-desc">
+          Multiple GET endpoints across <code>alerts.py</code>, <code>assets.py</code>, and <code>operations.py</code> router files lack the <code>CurrentUser</code>
+          dependency injection. This means these endpoints are accessible without any authentication, exposing operational data
+          including all registered assets, alert configurations, and operation definitions to unauthenticated callers.
+        </p>
+        <p class="issue-desc" style="margin-top:8px;">
+          <strong>Impact:</strong> Unauthenticated access to internal infrastructure data. Attackers can enumerate all managed hypervisors,
+          VMs, storage volumes, networks, and alert rules without credentials.
+        </p>
+        <p class="issue-loc">Files: backend/app/routers/alerts.py, backend/app/routers/assets.py, backend/app/routers/operations.py</p>
+      </li>
+
+      <!-- CRITICAL-05 -->
+      <li class="issue-item critical">
+        <div class="issue-header">
+          <span class="issue-id">CRITICAL-05</span>
+          <span class="issue-title">Audit Middleware Body Consumption Bug</span>
+          <span class="badge badge-critical">P0 &middot; Data Integrity</span>
+        </div>
+        <p class="issue-desc">
+          <code>AuditMiddleware.dispatch()</code> reads <code>request.body()</code> for mutating HTTP methods (POST, PUT, PATCH, DELETE)
+          <strong>before</strong> calling <code>call_next(request)</code>. In ASGI/Starlette, the request body is a single-use stream.
+          Once consumed by the middleware, it is empty when the actual route handler attempts to read it.
+          This causes <strong>every mutation endpoint</strong> (POST/PUT/PATCH/DELETE) to receive an empty request body,
+          silently breaking all create, update, and delete operations across the entire API.
+        </p>
+        <p class="issue-desc" style="margin-top:8px;">
+          <strong>Impact:</strong> This is a showstopper bug. All mutation endpoints are broken. POST requests to create platforms, assets,
+          or operations receive empty bodies and either fail silently or create records with only default values.
+        </p>
+        <p class="issue-loc">File: backend/app/middleware/audit.py &mdash; dispatch() method, body consumed before call_next()</p>
+      </li>
+
+      <!-- CRITICAL-06: JWT token type -->
+      <li class="issue-item critical">
+        <div class="issue-header">
+          <span class="issue-id">CRITICAL-06</span>
+          <span class="issue-title">No JWT Token Type Validation</span>
+          <span class="badge badge-critical">P0 &middot; Auth</span>
+        </div>
+        <p class="issue-desc">
+          JWT tokens issued by the platform include <code>type: "access"</code> and <code>type: "refresh"</code> claims,
+          but <code>decode_token()</code> in <code>security.py</code> does not validate the <code>type</code> claim.
+          This means a refresh token (which typically has a longer lifetime and different revocation semantics)
+          can be used interchangeably with an access token for all authenticated API calls.
+        </p>
+        <p class="issue-loc">File: backend/app/core/security.py &mdash; decode_token() function</p>
+      </li>
+
+      <!-- CRITICAL-07: Migration engine commands -->
+      <li class="issue-item critical">
+        <div class="issue-header">
+          <span class="issue-id">CRITICAL-07</span>
+          <span class="issue-title">Migration Engine Commands Are Descriptive Strings</span>
+          <span class="badge badge-critical">P0 &middot; Functionality</span>
+        </div>
+        <p class="issue-desc">
+          The cross-platform VM migration engine generates command objects that are descriptive strings describing what <em>should</em> be done,
+          but these commands are not actually executable. They are marked as <code>"is_descriptive"</code> rather than containing
+          real, runnable instructions. The migration engine is effectively non-functional &mdash; it documents migration intent without
+          performing any actual migration work.
+        </p>
+        <p class="issue-loc">File: backend/app/services/migration_engine.py</p>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- CRITICAL RUNTIME ERRORS (P0) -->
+<!-- ============================================================ -->
+<section id="runtime-errors" class="section">
+  <div class="container">
+    <h2 class="section-title">Critical Runtime Errors</h2>
+    <p class="section-subtitle">Additional P0 issues affecting runtime behavior and error handling</p>
+
+    <ul class="issue-list">
+      <!-- Runtime Error: Token error duplication -->
+      <li class="issue-item critical">
+        <div class="issue-header">
+          <span class="issue-id">RUNTIME-01</span>
+          <span class="issue-title">Error Message Duplication in Token Validation</span>
+          <span class="badge badge-critical">P0 &middot; Observability</span>
+        </div>
+        <p class="issue-desc">
+          <code>decode_token()</code> in <code>security.py</code> catches <code>JWTError</code> and re-wraps it with
+          "Token validation failed: {exc}". The caller in <code>dependencies.py</code> catches this new exception
+          and wraps it <em>again</em> with the same prefix. The resulting error message to the client becomes
+          <code>"Token validation failed: Token validation failed: &lt;original error&gt;"</code>,
+          which is confusing and leaks internal error details.
+        </p>
+        <p class="issue-loc">Files: backend/app/core/security.py, backend/app/core/dependencies.py</p>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- BACKEND CODE REVIEW (P1) -->
+<!-- ============================================================ -->
+<section id="backend" class="section">
+  <div class="container">
+    <h2 class="section-title">Backend Code Review</h2>
+    <p class="section-subtitle">P1 high-priority backend issues and architectural concerns</p>
+
+    <ul class="issue-list">
+      <li class="issue-item high">
+        <div class="issue-header">
+          <span class="issue-id">BACKEND-01</span>
+          <span class="issue-title">Dual Platform Enum Types</span>
+          <span class="badge badge-high">P1 &middot; Data Model</span>
+        </div>
+        <p class="issue-desc">
+          Two separate enum types represent the same concept: <code>asset.py</code> defines <code>Platform</code> with mixed-case values
+          (OpenStack, Kubernetes, Physical, Other) while <code>platform.py</code> defines <code>PlatformType</code> with lowercase values
+          (vsphere, kvm, fusionsphere). These inconsistent representations create confusion and potential bugs when mapping between layers.
+          The schemas are also mismatched with the database schema, where <code>platform_type</code> uses underscored variants
+          (vmware_vsphere, fusion_sphere) that differ from application code (vsphere, fusionsphere).
+        </p>
+        <p class="issue-loc">Files: backend/app/models/asset.py, backend/app/models/platform.py, db/schema.sql</p>
+      </li>
+
+      <li class="issue-item high">
+        <div class="issue-header">
+          <span class="issue-id">BACKEND-02</span>
+          <span class="issue-title">No Alembic Migration Configuration</span>
+          <span class="badge badge-high">P1 &middot; DevOps</span>
+        </div>
+        <p class="issue-desc">
+          Alembic is listed in <code>requirements.txt</code> but no <code>alembic.ini</code> configuration file was found in the project.
+          The migration file <code>db/migrations/001_initial.py</code> exists but may not be integrated with the Alembic autogenerate workflow.
+          Without proper migration tooling, schema changes cannot be reliably tracked, versioned, or rolled back.
+        </p>
+        <p class="issue-loc">Files: backend/requirements.txt, missing: alembic.ini</p>
+      </li>
+
+      <li class="issue-item high">
+        <div class="issue-header">
+          <span class="issue-id">BACKEND-03</span>
+          <span class="issue-title">In-Memory State Without Persistence</span>
+          <span class="badge badge-high">P1 &middot; Resilience</span>
+        </div>
+        <p class="issue-desc">
+          <code>ChatService</code> stores conversation contexts in an <code>OrderedDict</code> with TTL-based eviction.
+          <code>OperationExecutor._running</code> tracks in-flight operations in a plain Python dict.
+          Both are lost on process restart, container redeployment, or horizontal scaling.
+          Despite having Redis 7 available, neither service uses it for state persistence.
+          This means chat context is lost on restart and running operation tracking fails across deployments.
+        </p>
+        <p class="issue-loc">Files: backend/app/services/chat_service.py, backend/app/services/operation_executor.py</p>
+      </li>
+
+      <li class="issue-item high">
+        <div class="issue-header">
+          <span class="issue-id">BACKEND-04</span>
+          <span class="issue-title">N+1 Query in DashboardService.get_summary()</span>
+          <span class="badge badge-high">P1 &middot; Performance</span>
+        </div>
+        <p class="issue-desc">
+          <code>DashboardService.get_summary()</code> makes 7 separate repository calls sequentially instead of using
+          <code>asyncio.gather()</code> to execute them in parallel. Since each call is an independent database query,
+          the total latency is the sum of all 7 queries rather than the maximum of any single query.
+          Under load, this adds unnecessary latency to the dashboard, which is typically the most-accessed endpoint.
+        </p>
+        <p class="issue-loc">File: backend/app/services/dashboard_service.py &mdash; get_summary()</p>
+      </li>
+
+      <li class="issue-item high">
+        <div class="issue-header">
+          <span class="issue-id">BACKEND-05</span>
+          <span class="issue-title">Module-Level Singletons Tied to Import Time</span>
+          <span class="badge badge-high">P1 &middot; Testability</span>
+        </div>
+        <p class="issue-desc">
+          <code>chat_service</code>, <code>operation_executor</code>, and the migration engine are instantiated at module import time
+          as module-level singletons. This makes unit testing difficult (cannot inject mocks without patching),
+          creates fragile initialization ordering dependencies, and makes configuration changes require a full restart.
+          These should use FastAPI's dependency injection system or a proper application factory pattern.
+        </p>
+        <p class="issue-loc">Files: backend/app/services/chat_service.py, backend/app/services/operation_executor.py, backend/app/services/migration_engine.py</p>
+      </li>
+
+      <li class="issue-item high">
+        <div class="issue-header">
+          <span class="issue-id">BACKEND-06</span>
+          <span class="issue-title">Response Model Inconsistency in Platform Service</span>
+          <span class="badge badge-high">P1 &middot; API Contract</span>
+        </div>
+        <p class="issue-desc">
+          <code>platforms.py</code> <code>_to_response()</code> method does not include <code>extra</code>, <code>created_at</code>,
+          or <code>updated_at</code> fields in the response object. The database model includes these fields but the API response silently
+          drops them. This creates an incomplete API contract where clients cannot access metadata or creation timestamps.
+        </p>
+        <p class="issue-loc">File: backend/app/routers/platforms.py &mdash; _to_response()</p>
+      </li>
+
+      <li class="issue-item high">
+        <div class="issue-header">
+          <span class="issue-id">BACKEND-07</span>
+          <span class="issue-title">Stub Implementations Return 200 with success=false</span>
+          <span class="badge badge-high">P1 &middot; API Design</span>
+        </div>
+        <p class="issue-desc">
+          <code>AssetService.execute_action()</code> and several compute operation endpoints return HTTP 200 with a JSON body
+          containing <code>success: false</code> instead of returning HTTP 501 Not Implemented. This misleads clients into
+          thinking the operation was processed but failed, rather than understanding the endpoint is not yet implemented.
+        </p>
+        <p class="issue-loc">Files: backend/app/services/asset_service.py, backend/app/routers/compute.py</p>
+      </li>
+
+      <li class="issue-item high">
+        <div class="issue-header">
+          <span class="issue-id">BACKEND-08</span>
+          <span class="issue-title">Missing API Routes for Implemented Services</span>
+          <span class="badge badge-high">P1 &middot; API Coverage</span>
+        </div>
+        <p class="issue-desc">
+          <code>OperationService.execute_operation()</code> and <code>OperationService.rollback_operation()</code> have full
+          service-layer implementations but no corresponding API routes exist. The functionality is implemented but unreachable
+          through the REST API, representing dead code at the service layer and a missing feature at the API layer.
+        </p>
+        <p class="issue-loc">Files: backend/app/services/operation_service.py, backend/app/routers/operations.py</p>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- FRONTEND CODE REVIEW (P1) -->
+<!-- ============================================================ -->
+<section id="frontend" class="section">
+  <div class="container">
+    <h2 class="section-title">Frontend Code Review</h2>
+    <p class="section-subtitle">P1 high-priority frontend architectural and UX issues</p>
+
+    <ul class="issue-list">
+      <li class="issue-item high">
+        <div class="issue-header">
+          <span class="issue-id">FRONTEND-01</span>
+          <span class="issue-title">Dual Source of Truth: React Query + Zustand</span>
+          <span class="badge badge-high">P1 &middot; Architecture</span>
+        </div>
+        <p class="issue-desc">
+          Platform data exists simultaneously in both the React Query cache (via <code>usePlatforms()</code>) and the Zustand store
+          (<code>platformStore</code>). Migration status has the same duplication pattern. This dual source of truth is the
+          <strong>most significant frontend architectural concern</strong>: it creates cache invalidation complexity, increases
+          the risk of stale or inconsistent UI state, and makes debugging data flow significantly harder.
+          Zustand should either be the single source of truth (with React Query for server sync only) or eliminated in favor
+          of React Query's built-in cache management.
+        </p>
+        <p class="issue-loc">Files: frontend/src/stores/platformStore.ts, frontend/src/hooks/usePlatforms.ts, frontend/src/stores/migrationStore.ts</p>
+      </li>
+
+      <li class="issue-item high">
+        <div class="issue-header">
+          <span class="issue-id">FRONTEND-02</span>
+          <span class="issue-title">Dead Code: providers.tsx</span>
+          <span class="badge badge-high">P1 &middot; Maintainability</span>
+        </div>
+        <p class="issue-desc">
+          <code>app/providers.tsx</code> duplicates the <code>QueryClientProvider</code> setup from <code>App.tsx</code>
+          but is never imported or referenced anywhere in the codebase. This dead code causes confusion during development
+          and could lead to bugs if someone imports it expecting it to be the canonical provider setup.
+        </p>
+        <p class="issue-loc">File: frontend/src/app/providers.tsx</p>
+      </li>
+
+      <li class="issue-item high">
+        <div class="issue-header">
+          <span class="issue-id">FRONTEND-03</span>
+          <span class="issue-title">Error Boundary Destroys Query Cache</span>
+          <span class="badge badge-high">P1 &middot; Resilience</span>
+        </div>
+        <p class="issue-desc">
+          <code>App.tsx</code> wraps <code>ErrorBoundary</code> <em>around</em> <code>QueryClientProvider</code>.
+          If the error boundary catches an error, the <code>QueryClientProvider</code> is unmounted, destroying the
+          entire React Query cache. This turns a single component error into a full application cache loss,
+          causing all in-flight queries to be cancelled and all cached data to be discarded.
+          The error boundary should be placed <em>inside</em> the <code>QueryClientProvider</code>.
+        </p>
+        <p class="issue-loc">File: frontend/src/App.tsx</p>
+      </li>
+
+      <li class="issue-item high">
+        <div class="issue-header">
+          <span class="issue-id">FRONTEND-04</span>
+          <span class="issue-title">Chat Error Handling Is Silent</span>
+          <span class="badge badge-high">P1 &middot; UX</span>
+        </div>
+        <p class="issue-desc">
+          <code>useChat.ts</code> handles errors by only calling <code>setLoading(false)</code>. The optimistic user message
+          remains displayed in the chat UI with no error indicator, no retry option, and no feedback to the user that their
+          message failed to send. This is a silent failure mode &mdash; users will believe their message was processed
+          when it was actually dropped.
+        </p>
+        <p class="issue-loc">File: frontend/src/hooks/useChat.ts</p>
+      </li>
+
+      <li class="issue-item high">
+        <div class="issue-header">
+          <span class="issue-id">FRONTEND-05</span>
+          <span class="issue-title">Missing 404 Route</span>
+          <span class="badge badge-high">P1 &middot; Routing</span>
+        </div>
+        <p class="issue-desc">
+          <code>router.tsx</code> has no wildcard (<code>*</code>) / 404 route. Navigating to an unknown path renders
+          a blank <code>AppLayout</code> with no child content, providing no indication to the user that the page
+          does not exist. This is a basic routing completeness issue.
+        </p>
+        <p class="issue-loc">File: frontend/src/router.tsx</p>
+      </li>
+
+      <li class="issue-item high">
+        <div class="issue-header">
+          <span class="issue-id">FRONTEND-06</span>
+          <span class="issue-title">useCallback Dependency on Mutation Object</span>
+          <span class="badge badge-high">P1 &middot; Performance</span>
+        </div>
+        <p class="issue-desc">
+          In <code>useChat.ts</code>, the <code>send</code> function is wrapped in <code>useCallback</code> with a dependency
+          on the entire <code>mutation</code> object. Since <code>mutation</code> is a new object reference on every render,
+          <code>send</code> is recreated on every render, completely defeating the purpose of <code>useCallback</code>.
+          The dependency should be narrowed to the specific stable values needed.
+        </p>
+        <p class="issue-loc">File: frontend/src/hooks/useChat.ts</p>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- MEDIUM PRIORITY ISSUES (P2) -->
+<!-- ============================================================ -->
+<section id="medium" class="section">
+  <div class="container">
+    <h2 class="section-title">Medium Priority Issues</h2>
+    <p class="section-subtitle">P2 issues that should be addressed in the next development cycle</p>
+
+    <ul class="issue-list">
+      <li class="issue-item medium">
+        <div class="issue-header">
+          <span class="issue-id">MED-01</span>
+          <span class="issue-title">Inconsistent Authentication on Read Endpoints</span>
+          <span class="badge badge-medium">P2 &middot; Security</span>
+        </div>
+        <p class="issue-desc">Some GET endpoints require authentication while others do not, with no clear policy or documentation explaining which is which. This inconsistency makes the security posture unclear and could lead to accidental data exposure.</p>
+      </li>
+
+      <li class="issue-item medium">
+        <div class="issue-header">
+          <span class="issue-id">MED-02</span>
+          <span class="issue-title">No Request Timeout on Frontend HttpClient</span>
+          <span class="badge badge-medium">P2 &middot; Resilience</span>
+        </div>
+        <p class="issue-desc">The frontend HTTP client has no <code>AbortController</code> / signal support for timing out requests. Long-running API calls can hang indefinitely with no user feedback or cancellation mechanism.</p>
+        <p class="issue-loc">File: frontend/src/lib/httpClient.ts</p>
+      </li>
+
+      <li class="issue-item medium">
+        <div class="issue-header">
+          <span class="issue-id">MED-03</span>
+          <span class="issue-title">No URL-Persisted Filter State</span>
+          <span class="badge badge-medium">P2 &middot; UX</span>
+        </div>
+        <p class="issue-desc">Filter and search states live only in Zustand stores and are not reflected in URL query parameters. This means filters are lost on page refresh, cannot be shared via URL, and browser back/forward navigation does not restore filter state.</p>
+      </li>
+
+      <li class="issue-item medium">
+        <div class="issue-header">
+          <span class="issue-id">MED-04</span>
+          <span class="issue-title">Inconsistent ID Types</span>
+          <span class="badge badge-medium">P2 &middot; Data Model</span>
+        </div>
+        <p class="issue-desc"><code>Platform.id</code> is typed as <code>number</code> while all other entity IDs (<code>Asset.id</code>, <code>Alert.id</code>, <code>Operation.id</code>) are typed as <code>string</code> (UUIDs). This inconsistency forces type guards and special cases throughout the codebase.</p>
+      </li>
+
+      <li class="issue-item medium">
+        <div class="issue-header">
+          <span class="issue-id">MED-05</span>
+          <span class="issue-title">No Input Sanitization on Chat Messages</span>
+          <span class="badge badge-medium">P2 &middot; Security</span>
+        </div>
+        <p class="issue-desc">User chat messages are used directly in regex pattern matching without length limits or sanitization. A malicious user could send extremely long messages to cause ReDoS (Regular Expression Denial of Service) via catastrophic backtracking.</p>
+      </li>
+
+      <li class="issue-item medium">
+        <div class="issue-header">
+          <span class="issue-id">MED-06</span>
+          <span class="issue-title">Hardcoded Partition Dates</span>
+          <span class="badge badge-medium">P2 &middot; Maintainability</span>
+        </div>
+        <p class="issue-desc">Migration partition creation uses hardcoded date ranges from 2026-01 to 2027-06. After July 2027, new partitions will not be created, and operations will fail. This should use dynamic date range generation.</p>
+      </li>
+
+      <li class="issue-item medium">
+        <div class="issue-header">
+          <span class="issue-id">MED-07</span>
+          <span class="issue-title">Alert Metric Values Stored as Strings</span>
+          <span class="badge badge-medium">P2 &middot; Data Model</span>
+        </div>
+        <p class="issue-desc"><code>Alert.metric_value</code> and <code>Alert.threshold</code> are defined as <code>String(100)</code> instead of <code>Float</code> or <code>Numeric</code>. Numeric comparisons and aggregations in queries require casting, which prevents index usage and degrades query performance.</p>
+      </li>
+
+      <li class="issue-item medium">
+        <div class="issue-header">
+          <span class="issue-id">MED-08</span>
+          <span class="issue-title">Missing eslint in Frontend devDependencies</span>
+          <span class="badge badge-medium">P2 &middot; Tooling</span>
+        </div>
+        <p class="issue-desc">The <code>package.json</code> defines a <code>"lint"</code> script referencing <code>eslint</code> but eslint is not listed in <code>devDependencies</code>. The lint script will fail on any machine that doesn't have eslint installed globally.</p>
+      </li>
+
+      <li class="issue-item medium">
+        <div class="issue-header">
+          <span class="issue-id">MED-09</span>
+          <span class="issue-title">Missing Platform SDKs in requirements.txt</span>
+          <span class="badge badge-medium">P2 &middot; Dependencies</span>
+        </div>
+        <p class="issue-desc"><code>pyvmomi</code> and <code>libvirt-python</code> are listed as required platform SDKs but are not present in <code>requirements.txt</code>. A fresh install will fail when vSphere or KVM adapters are used.</p>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- INFRASTRUCTURE & DEVOPS -->
+<!-- ============================================================ -->
+<section id="infrastructure" class="section">
+  <div class="container">
+    <h2 class="section-title">Infrastructure &amp; DevOps</h2>
+    <p class="section-subtitle">Version mismatches, configuration issues, and deployment concerns</p>
+
+    <div class="card" style="margin-bottom:24px;">
+      <div class="card-header">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-red)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        <span class="card-title">Version Inconsistency Epidemic</span>
+        <span class="badge badge-high">P1</span>
+      </div>
+      <p class="issue-desc" style="margin-bottom:16px;">
+        The project suffers from widespread version inconsistency across documentation, configuration files, and database naming.
+        This creates confusion during deployment and maintenance, and indicates a lack of release management discipline.
+      </p>
+      <table>
+        <thead><tr><th>Source</th><th>Version</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>README.md</td><td>V3.2</td><td><span class="tag" style="background:rgba(63,185,80,0.15);color:var(--accent-green);">Reference</span></td></tr>
+          <tr><td>backend/pyproject.toml</td><td>3.1.0</td><td><span class="badge badge-critical">MISMATCH</span></td></tr>
+          <tr><td>frontend/package.json</td><td>3.2.0</td><td><span class="badge badge-low">OK</span></td></tr>
+          <tr><td>Multiple docs</td><td>V3.1</td><td><span class="badge badge-critical">MISMATCH</span></td></tr>
+          <tr><td>Database names</td><td>v31</td><td><span class="badge badge-critical">MISMATCH</span></td></tr>
+          <tr><td>Config APP_VERSION default</td><td>"3.1.0"</td><td><span class="badge badge-critical">MISMATCH</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Port Inconsistency</span></div>
+        <table>
+          <tr><td>docker-compose.yml</td><td>5173</td></tr>
+          <tr><td>vite.config.ts</td><td>3000</td></tr>
+          <tr><td>README.md</td><td>5173</td></tr>
+        </table>
+        <p style="margin-top:12px;font-size:13px;color:var(--text-secondary);">Three different port numbers across configuration sources.</p>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Python Version Mismatch</span></div>
+        <table>
+          <tr><td>Dockerfile</td><td>3.12-slim</td></tr>
+          <tr><td>README.md</td><td>3.14.5</td></tr>
+          <tr><td>PLATFORM_SDK_RESEARCH</td><td>3.14</td></tr>
+        </table>
+        <p style="margin-top:12px;font-size:13px;color:var(--text-secondary);">Python 3.14 does not exist as a stable release. Dockerfile is correct.</p>
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-top:20px;">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Documentation Duplication</span></div>
+        <p style="font-size:13px;color:var(--text-secondary);">
+          <code>DEPLOYMENT.md</code> and <code>DEPLOYMENT_GUIDE.md</code> cover the same content with minor variations.
+          This creates maintenance burden and potential for contradictory information.
+        </p>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Schema-Database Mismatch</span></div>
+        <p style="font-size:13px;color:var(--text-secondary);">
+          <code>db/schema.sql</code> <code>platform_type</code> enum uses <code>'vmware_vsphere'</code>, <code>'fusion_sphere'</code> (with underscores)
+          but application code uses <code>'vsphere'</code>, <code>'fusionsphere'</code> (no underscores).
+          This will cause database constraint violations when inserting platform records.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- TEST COVERAGE ANALYSIS -->
+<!-- ============================================================ -->
+<section id="testing" class="section">
+  <div class="container">
+    <h2 class="section-title">Test Coverage Analysis</h2>
+    <p class="section-subtitle">Current test status, coverage gaps, and recommendations</p>
+
+    <div class="grid-2">
+      <div class="chart-box">
+        <div class="chart-title">Test Suite Summary</div>
+        <svg width="100%" viewBox="0 0 500 280" xmlns="http://www.w3.org/2000/svg">
+          <!-- Total tests -->
+          <rect x="40" y="30" width="420" height="36" rx="6" fill="#21262d"/>
+          <rect x="40" y="30" width="420" height="36" rx="6" fill="#3fb950" opacity="0.7"/>
+          <text x="470" y="53" fill="#3fb950" font-size="14" font-weight="700" text-anchor="end">246 / 246</text>
+          <text x="52" y="53" fill="#e6edf3" font-size="13">All Tests Passing</text>
+
+          <!-- Services tested -->
+          <rect x="40" y="85" width="420" height="36" rx="6" fill="#21262d"/>
+          <rect x="40" y="85" width="280" height="36" rx="6" fill="#3fb950" opacity="0.5"/>
+          <text x="470" y="108" fill="#3fb950" font-size="14" font-weight="700" text-anchor="end">4 / 6</text>
+          <text x="52" y="108" fill="#e6edf3" font-size="13">Services with Tests</text>
+
+          <!-- API routers tested -->
+          <rect x="40" y="140" width="420" height="36" rx="6" fill="#21262d"/>
+          <rect x="40" y="140" width="210" height="36" rx="6" fill="#d2991d" opacity="0.5"/>
+          <text x="470" y="163" fill="#d2991d" font-size="14" font-weight="700" text-anchor="end">3 / 5</text>
+          <text x="52" y="163" fill="#e6edf3" font-size="13">API Routers with Tests</text>
+
+          <!-- Integration tests -->
+          <rect x="40" y="195" width="420" height="36" rx="6" fill="#21262d"/>
+          <rect x="40" y="195" width="42" height="36" rx="6" fill="#f85149" opacity="0.5"/>
+          <text x="470" y="218" fill="#f85149" font-size="14" font-weight="700" text-anchor="end">0</text>
+          <text x="52" y="218" fill="#e6edf3" font-size="13">Platform Adapter Integration Tests</text>
+
+          <!-- Additional tests needed -->
+          <text x="40" y="265" fill="#8b949e" font-size="12">~40 additional test methods needed for full coverage</text>
+        </svg>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span class="card-title">Coverage Gaps</span></div>
+        <table>
+          <thead><tr><th>Component</th><th>Status</th><th>Tests Needed</th></tr></thead>
+          <tbody>
+            <tr><td>Services (4 of 6)</td><td><span class="badge badge-high">Partial</span></td><td class="num">~15</td></tr>
+            <tr><td>API Routers (3 of 5)</td><td><span class="badge badge-high">Partial</span></td><td class="num">~12</td></tr>
+            <tr><td>Platform Adapters (vSphere)</td><td><span class="badge badge-critical">None</span></td><td class="num">~5</td></tr>
+            <tr><td>Platform Adapters (KVM)</td><td><span class="badge badge-critical">None</span></td><td class="num">~5</td></tr>
+            <tr><td>Platform Adapters (FusionSphere)</td><td><span class="badge badge-critical">None</span></td><td class="num">~3</td></tr>
+            <tr><td>Migration Engine</td><td><span class="badge badge-critical">None</span></td><td class="num">~5</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:20px;">
+      <div class="card-header"><span class="card-title">Test Coverage Assessment</span></div>
+      <div style="font-size:13px;color:var(--text-secondary);line-height:1.8;">
+        <p>
+          <strong>Strengths:</strong> All 246 existing tests pass. The test suite covers core service logic and API router behavior well.
+          The use of pytest with async support (<code>pytest-asyncio</code>) is appropriate for the async SQLAlchemy architecture.
+        </p>
+        <p style="margin-top:8px;">
+          <strong>Critical Gap:</strong> There are <strong>zero integration tests</strong> for platform adapters against real hypervisor endpoints.
+          The vSphere, KVM, and FusionSphere adapters have never been tested against actual hypervisor APIs. Given that these adapters
+          handle VM lifecycle operations (create, delete, migrate), the lack of integration testing is a significant risk.
+        </p>
+        <p style="margin-top:8px;">
+          <strong>Recommendation:</strong> Add ~40 test methods to cover the 2 untested services and 2 untested API routers.
+          Implement integration tests using hypervisor API mocks/simulators (e.g., <code>vcrpy</code> for HTTP replay, mock libvirt daemon).
+          Prioritize migration engine tests since the engine is currently non-functional.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- PRIORITIZED ACTION ITEMS -->
+<!-- ============================================================ -->
+<section id="action-items" class="section">
+  <div class="container">
+    <h2 class="section-title">Prioritized Action Items</h2>
+    <p class="section-subtitle">Remediation roadmap ordered by priority and effort</p>
+
+    <!-- P0 Actions -->
+    <div class="card" style="border-left:4px solid var(--accent-red);margin-bottom:24px;">
+      <div class="card-header">
+        <span class="badge badge-critical" style="font-size:13px;">P0 &mdash; Blocking (Must Fix Before Production)</span>
+      </div>
+      <table>
+        <thead><tr><th style="width:40px;">#</th><th>Action</th><th style="width:100px;">Effort</th><th style="width:100px;">Owner</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Fix AuditMiddleware body consumption bug &mdash; read body after call_next() or use request._body pattern</td><td>Medium</td><td>Backend</td></tr>
+          <tr><td>2</td><td>Replace shell=True with subprocess.run using list arguments; add strict parameter validation with whitelist</td><td>Medium</td><td>Backend</td></tr>
+          <tr><td>3</td><td>Enable SSL verification in FusionSphere adapter; add CA cert path configuration option</td><td>Small</td><td>Backend</td></tr>
+          <tr><td>4</td><td>Add CurrentUser dependency to all unauthenticated GET endpoints in alerts, assets, operations routers</td><td>Small</td><td>Backend</td></tr>
+          <tr><td>5</td><td>Add token type validation in decode_token(); reject refresh tokens for API access</td><td>Small</td><td>Backend</td></tr>
+          <tr><td>6</td><td>Fix _safe_decrypt plaintext fallback; add redaction for auth_token, bearer, session_key in audit middleware</td><td>Small</td><td>Backend</td></tr>
+          <tr><td>7</td><td>Implement actual migration engine commands &mdash; replace is_descriptive stubs with real execution logic</td><td>Large</td><td>Backend</td></tr>
+          <tr><td>8</td><td>Fix error message duplication in security.py / dependencies.py token validation chain</td><td>Small</td><td>Backend</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- P1 Actions -->
+    <div class="card" style="border-left:4px solid var(--accent-orange);margin-bottom:24px;">
+      <div class="card-header">
+        <span class="badge badge-high" style="font-size:13px;">P1 &mdash; High Priority (Before Next Release)</span>
+      </div>
+      <table>
+        <thead><tr><th style="width:40px;">#</th><th>Action</th><th style="width:100px;">Effort</th><th style="width:100px;">Owner</th></tr></thead>
+        <tbody>
+          <tr><td>9</td><td>Unify Platform/PlatformType enums into single source of truth; align DB schema enum values</td><td>Medium</td><td>Backend</td></tr>
+          <tr><td>10</td><td>Configure Alembic with alembic.ini and integrate existing migration file</td><td>Small</td><td>Backend</td></tr>
+          <tr><td>11</td><td>Persist chat contexts and operation tracking in Redis</td><td>Medium</td><td>Backend</td></tr>
+          <tr><td>12</td><td>Use asyncio.gather() in DashboardService.get_summary() for parallel queries</td><td>Small</td><td>Backend</td></tr>
+          <tr><td>13</td><td>Resolve dual source of truth: eliminate Zustand platform/migration stores or React Query cache</td><td>Large</td><td>Frontend</td></tr>
+          <tr><td>14</td><td>Add 404 route to router.tsx; add error indicators to Chat component</td><td>Small</td><td>Frontend</td></tr>
+          <tr><td>15</td><td>Move ErrorBoundary inside QueryClientProvider; remove dead providers.tsx</td><td>Small</td><td>Frontend</td></tr>
+          <tr><td>16</td><td>Fix useCallback dependency in useChat.ts; narrow to stable values</td><td>Small</td><td>Frontend</td></tr>
+          <tr><td>17</td><td>Normalize version strings to 3.2.0 across all files; fix Python version to 3.12</td><td>Small</td><td>DevOps</td></tr>
+          <tr><td>18</td><td>Add missing _to_response fields (extra, created_at, updated_at); add API routes for execute_operation</td><td>Small</td><td>Backend</td></tr>
+          <tr><td>19</td><td>Add pyvmomi and libvirt-python to requirements.txt</td><td>Small</td><td>DevOps</td></tr>
+          <tr><td>20</td><td>Convert stub 200 responses to 501 Not Implemented</td><td>Small</td><td>Backend</td></tr>
+          <tr><td>21</td><td>Fix port consistency (3000 vs 5173); add eslint to devDependencies</td><td>Small</td><td>DevOps</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- P2 Actions -->
+    <div class="card" style="border-left:4px solid var(--accent-blue);">
+      <div class="card-header">
+        <span class="badge badge-medium" style="font-size:13px;">P2 &mdash; Medium Priority (Next Development Cycle)</span>
+      </div>
+      <table>
+        <thead><tr><th style="width:40px;">#</th><th>Action</th><th style="width:100px;">Effort</th><th style="width:100px;">Owner</th></tr></thead>
+        <tbody>
+          <tr><td>22</td><td>Define and document authentication policy for all read endpoints</td><td>Small</td><td>Backend</td></tr>
+          <tr><td>23</td><td>Add AbortController timeout support to frontend HttpClient</td><td>Small</td><td>Frontend</td></tr>
+          <tr><td>24</td><td>Persist filter/search state in URL query parameters</td><td>Medium</td><td>Frontend</td></tr>
+          <tr><td>25</td><td>Convert Alert metric_value/threshold to Float/Numeric type</td><td>Small</td><td>Backend</td></tr>
+          <tr><td>26</td><td>Add input length limit and ReDoS protection to chat message processing</td><td>Small</td><td>Backend</td></tr>
+          <tr><td>27</td><td>Replace hardcoded partition dates with dynamic range generation</td><td>Small</td><td>Backend</td></tr>
+          <tr><td>28</td><td>Consolidate DEPLOYMENT.md and DEPLOYMENT_GUIDE.md</td><td>Small</td><td>DevOps</td></tr>
+          <tr><td>29</td><td>Standardize ID types (Platform.id to UUID string or all others to number)</td><td>Medium</td><td>Backend</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- RISK MATRIX -->
+<!-- ============================================================ -->
+<section id="risk-matrix" class="section">
+  <div class="container">
+    <h2 class="section-title">Risk Matrix</h2>
+    <p class="section-subtitle">Likelihood vs. Impact assessment for identified issues</p>
+
+    <div class="risk-grid">
+      <div class="risk-cell header">Likelihood &#8594;<br>Impact &#8595;</div>
+      <div class="risk-cell header">Rare</div>
+      <div class="risk-cell header">Unlikely</div>
+      <div class="risk-cell header">Possible</div>
+      <div class="risk-cell header">Likely</div>
+
+      <div class="risk-cell header">Critical</div>
+      <div class="risk-cell medium-cell">Migration commands are descriptive only</div>
+      <div class="risk-cell critical-cell">FusionSphere SSL verify=false (MITM)</div>
+      <div class="risk-cell critical-cell">Audit middleware body consumption (ALL mutations broken)</div>
+      <div class="risk-cell critical-cell">Shell injection in operation executor</div>
+
+      <div class="risk-cell header">High</div>
+      <div class="risk-cell low-cell">Token type not validated</div>
+      <div class="risk-cell high-cell">Plaintext password fallback path</div>
+      <div class="risk-cell high-cell">Unauthenticated API endpoints</div>
+      <div class="risk-cell high-cell">Sensitive fields not redacted in audit</div>
+
+      <div class="risk-cell header">Medium</div>
+      <div class="risk-cell low-cell">N+1 query in dashboard</div>
+      <div class="risk-cell medium-cell">Chat error handling silent</div>
+      <div class="risk-cell medium-cell">In-memory state loss on restart</div>
+      <div class="risk-cell medium-cell">No request timeout (frontend)</div>
+
+      <div class="risk-cell header">Low</div>
+      <div class="risk-cell empty">Version inconsistencies</div>
+      <div class="risk-cell low-cell">Dual Platform enum types</div>
+      <div class="risk-cell low-cell">Missing 404 route</div>
+      <div class="risk-cell low-cell">Port inconsistencies</div>
+    </div>
+
+    <div style="display:flex;gap:24px;margin-top:20px;flex-wrap:wrap;">
+      <div style="display:flex;align-items:center;gap:8px;"><div style="width:14px;height:14px;border-radius:3px;background:rgba(248,81,73,0.5);"></div><span style="font-size:12px;color:var(--text-secondary);">Critical Risk</span></div>
+      <div style="display:flex;align-items:center;gap:8px;"><div style="width:14px;height:14px;border-radius:3px;background:rgba(210,153,29,0.5);"></div><span style="font-size:12px;color:var(--text-secondary);">High Risk</span></div>
+      <div style="display:flex;align-items:center;gap:8px;"><div style="width:14px;height:14px;border-radius:3px;background:rgba(88,166,255,0.4);"></div><span style="font-size:12px;color:var(--text-secondary);">Medium Risk</span></div>
+      <div style="display:flex;align-items:center;gap:8px;"><div style="width:14px;height:14px;border-radius:3px;background:rgba(139,148,158,0.3);"></div><span style="font-size:12px;color:var(--text-secondary);">Low Risk</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- BREAKDOWN CHARTS -->
+<!-- ============================================================ -->
+<section class="section">
+  <div class="container">
+    <h2 class="section-title">Issue Distribution</h2>
+    <p class="section-subtitle">Visual breakdown of findings by category and severity</p>
+
+    <div class="grid-2">
+      <!-- Bar chart: Issues by severity -->
+      <div class="chart-box">
+        <div class="chart-title">Issues by Severity</div>
+        <svg width="100%" viewBox="0 0 500 300" xmlns="http://www.w3.org/2000/svg">
+          <!-- Y axis labels -->
+          <text x="30" y="50" fill="#8b949e" font-size="11" text-anchor="end">16</text>
+          <line x1="35" y1="45" x2="480" y2="45" stroke="#21262d" stroke-width="1"/>
+          <text x="30" y="95" fill="#8b949e" font-size="11" text-anchor="end">12</text>
+          <line x1="35" y1="90" x2="480" y2="90" stroke="#21262d" stroke-width="1"/>
+          <text x="30" y="140" fill="#8b949e" font-size="11" text-anchor="end">8</text>
+          <line x1="35" y1="135" x2="480" y2="135" stroke="#21262d" stroke-width="1"/>
+          <text x="30" y="185" fill="#8b949e" font-size="11" text-anchor="end">4</text>
+          <line x1="35" y1="180" x2="480" y2="180" stroke="#21262d" stroke-width="1"/>
+          <text x="30" y="230" fill="#8b949e" font-size="11" text-anchor="end">0</text>
+          <line x1="35" y1="225" x2="480" y2="225" stroke="#30363d" stroke-width="1"/>
+
+          <!-- Bars -->
+          <!-- P0: 7 issues -->
+          <rect x="80" y="225" width="60" height="0" rx="3" fill="#f85149" opacity="0.8">
+            <animate attributeName="height" from="0" to="98" dur="0.8s" fill="freeze"/>
+            <animate attributeName="y" from="225" to="127" dur="0.8s" fill="freeze"/>
+          </rect>
+          <rect x="80" y="127" width="60" height="98" rx="3" fill="#f85149" opacity="0.8"/>
+          <text x="110" y="118" fill="#f85149" font-size="12" font-weight="700" text-anchor="middle">7</text>
+          <text x="110" y="248" fill="#8b949e" font-size="11" text-anchor="middle">P0</text>
+
+          <!-- P1: 13 issues -->
+          <rect x="190" y="225" width="60" height="0" rx="3" fill="#d2991d" opacity="0.8">
+            <animate attributeName="height" from="0" to="182" dur="0.8s" fill="freeze"/>
+            <animate attributeName="y" from="225" to="43" dur="0.8s" fill="freeze"/>
+          </rect>
+          <rect x="190" y="43" width="60" height="182" rx="3" fill="#d2991d" opacity="0.8"/>
+          <text x="220" y="36" fill="#d2991d" font-size="12" font-weight="700" text-anchor="middle">13</text>
+          <text x="220" y="248" fill="#8b949e" font-size="11" text-anchor="middle">P1</text>
+
+          <!-- P2: 9 issues -->
+          <rect x="300" y="225" width="60" height="0" rx="3" fill="#58a6ff" opacity="0.8">
+            <animate attributeName="height" from="0" to="126" dur="0.8s" fill="freeze"/>
+            <animate attributeName="y" from="225" to="99" dur="0.8s" fill="freeze"/>
+          </rect>
+          <rect x="300" y="99" width="60" height="126" rx="3" fill="#58a6ff" opacity="0.8"/>
+          <text x="330" y="92" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">9</text>
+          <text x="330" y="248" fill="#8b949e" font-size="11" text-anchor="middle">P2</text>
+
+          <!-- P3: 7 issues -->
+          <rect x="410" y="225" width="60" height="0" rx="3" fill="#8b949e" opacity="0.6">
+            <animate attributeName="height" from="0" to="98" dur="0.8s" fill="freeze"/>
+            <animate attributeName="y" from="225" to="127" dur="0.8s" fill="freeze"/>
+          </rect>
+          <rect x="410" y="127" width="60" height="98" rx="3" fill="#8b949e" opacity="0.6"/>
+          <text x="440" y="118" fill="#8b949e" font-size="12" font-weight="700" text-anchor="middle">7</text>
+          <text x="440" y="248" fill="#8b949e" font-size="11" text-anchor="middle">Infra</text>
+        </svg>
+      </div>
+
+      <!-- Donut chart: Issues by category -->
+      <div class="chart-box">
+        <div class="chart-title">Issues by Category</div>
+        <svg width="100%" viewBox="0 0 500 300" xmlns="http://www.w3.org/2000/svg">
+          <!-- Donut segments (simplified donut) -->
+          <circle cx="180" cy="150" r="95" fill="none" stroke="#21262d" stroke-width="40"/>
+          <!-- Security: 8 issues (~22%) -->
+          <circle cx="180" cy="150" r="95" fill="none" stroke="#f85149" stroke-width="40"
+            stroke-dasharray="131.3 596.9" stroke-dashoffset="0" transform="rotate(-90 180 150)" opacity="0.85"/>
+          <!-- Architecture: 7 issues (~19%) -->
+          <circle cx="180" cy="150" r="95" fill="none" stroke="#d2991d" stroke-width="40"
+            stroke-dasharray="113.4 596.9" stroke-dashoffset="-131.3" transform="rotate(-90 180 150)" opacity="0.85"/>
+          <!-- Frontend: 6 issues (~17%) -->
+          <circle cx="180" cy="150" r="95" fill="none" stroke="#58a6ff" stroke-width="40"
+            stroke-dasharray="101.5 596.9" stroke-dashoffset="-244.7" transform="rotate(-90 180 150)" opacity="0.85"/>
+          <!-- DevOps/Infra: 7 issues (~19%) -->
+          <circle cx="180" cy="150" r="95" fill="none" stroke="#8b949e" stroke-width="40"
+            stroke-dasharray="113.4 596.9" stroke-dashoffset="-346.2" transform="rotate(-90 180 150)" opacity="0.65"/>
+          <!-- Backend logic: 4 issues (~11%) -->
+          <circle cx="180" cy="150" r="95" fill="none" stroke="#bc8cff" stroke-width="40"
+            stroke-dasharray="65.6 596.9" stroke-dashoffset="-459.6" transform="rotate(-90 180 150)" opacity="0.85"/>
+          <!-- Data Model: 4 issues (~11%) -->
+          <circle cx="180" cy="150" r="95" fill="none" stroke="#39d2c0" stroke-width="40"
+            stroke-dasharray="65.6 596.9" stroke-dashoffset="-525.2" transform="rotate(-90 180 150)" opacity="0.85"/>
+
+          <text x="180" y="145" fill="#e6edf3" font-size="28" font-weight="700" text-anchor="middle">36</text>
+          <text x="180" y="165" fill="#8b949e" font-size="11" text-anchor="middle">Total Issues</text>
+
+          <!-- Legend -->
+          <rect x="310" y="50" width="12" height="12" rx="2" fill="#f85149" opacity="0.85"/>
+          <text x="330" y="61" fill="#8b949e" font-size="11">Security (8)</text>
+          <rect x="310" y="70" width="12" height="12" rx="2" fill="#d2991d" opacity="0.85"/>
+          <text x="330" y="81" fill="#8b949e" font-size="11">Architecture (7)</text>
+          <rect x="310" y="90" width="12" height="12" rx="2" fill="#58a6ff" opacity="0.85"/>
+          <text x="330" y="101" fill="#8b949e" font-size="11">Frontend (6)</text>
+          <rect x="310" y="110" width="12" height="12" rx="2" fill="#8b949e" opacity="0.65"/>
+          <text x="330" y="121" fill="#8b949e" font-size="11">DevOps/Infra (7)</text>
+          <rect x="310" y="130" width="12" height="12" rx="2" fill="#bc8cff" opacity="0.85"/>
+          <text x="330" y="141" fill="#8b949e" font-size="11">Backend Logic (4)</text>
+          <rect x="310" y="150" width="12" height="12" rx="2" fill="#39d2c0" opacity="0.85"/>
+          <text x="330" y="161" fill="#8b949e" font-size="11">Data Model (4)</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Codebase scale -->
+    <div class="grid-3" style="margin-top:24px;">
+      <div class="chart-box" style="text-align:center;">
+        <div class="chart-title" style="text-align:center;">Backend Files</div>
+        <div style="font-size:48px;font-weight:800;color:var(--accent-blue);">52</div>
+        <div style="font-size:12px;color:var(--text-muted);">Python source files</div>
+      </div>
+      <div class="chart-box" style="text-align:center;">
+        <div class="chart-title" style="text-align:center;">Frontend Files</div>
+        <div style="font-size:48px;font-weight:800;color:var(--accent-cyan);">60+</div>
+        <div style="font-size:12px;color:var(--text-muted);">TS/CSS source files</div>
+      </div>
+      <div class="chart-box" style="text-align:center;">
+        <div class="chart-title" style="text-align:center;">Database Objects</div>
+        <div style="font-size:48px;font-weight:800;color:var(--accent-purple);">57</div>
+        <div style="font-size:12px;color:var(--text-muted);">Indexes across 11 tables</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- STRENGTHS -->
+<!-- ============================================================ -->
+<section id="strengths" class="section">
+  <div class="container">
+    <h2 class="section-title">Strengths Identified</h2>
+    <p class="section-subtitle">Positive aspects of the codebase that should be preserved and built upon</p>
+
+    <div class="strength-grid">
+      <div class="strength-card">
+        <div class="strength-num">01</div>
+        <div class="strength-text"><strong>Clean layered architecture</strong> with clear dependency direction &mdash; API &#8594; Service &#8594; Repository &#8594; Database. Each layer has a well-defined responsibility and interface boundary.</div>
+      </div>
+      <div class="strength-card">
+        <div class="strength-num">02</div>
+        <div class="strength-text"><strong>Excellent SQLAlchemy 2.0 async implementation</strong> with proper session management, connection pooling, and async context managers throughout the data access layer.</div>
+      </div>
+      <div class="strength-card">
+        <div class="strength-num">03</div>
+        <div class="strength-text"><strong>Comprehensive schema design</strong> featuring 57 indexes, table partitioning, database triggers, and well-normalized relationships across 11 tables.</div>
+      </div>
+      <div class="strength-card">
+        <div class="strength-num">04</div>
+        <div class="strength-text"><strong>Well-structured React component hierarchy</strong> with strong TypeScript typing, proper use of React Router 6, and a clean component composition pattern.</div>
+      </div>
+      <div class="strength-card">
+        <div class="strength-num">05</div>
+        <div class="strength-text"><strong>Modern frontend stack</strong> leveraging TanStack Query 5 for server state, Zustand 5 for client state, and Vite 6 for build tooling &mdash; all well-integrated.</div>
+      </div>
+      <div class="strength-card">
+        <div class="strength-num">06</div>
+        <div class="strength-text"><strong>Structured logging throughout</strong> using structlog with consistent key formatting, making the application highly observable in production.</div>
+      </div>
+      <div class="strength-card">
+        <div class="strength-num">07</div>
+        <div class="strength-text"><strong>Atomic operation registry</strong> providing excellent extensibility &mdash; 109 operations across 9 categories, each with validation, execution, and rollback support.</div>
+      </div>
+      <div class="strength-card">
+        <div class="strength-num">08</div>
+        <div class="strength-text"><strong>Custom exception hierarchy</strong> with consistent error response formatting, proper HTTP status code mapping, and structured error payloads.</div>
+      </div>
+      <div class="strength-card">
+        <div class="strength-num">09</div>
+        <div class="strength-text"><strong>Thorough existing code review report</strong> (<code>CODE_REVIEW_REPORT.md</code>) demonstrates a culture of quality assurance and peer review.</div>
+      </div>
+      <div class="strength-card">
+        <div class="strength-num">10</div>
+        <div class="strength-text"><strong>CLAUDE.md provides excellent agent instructions</strong> with clear project conventions, architecture documentation, and development guidelines for contributors.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- ARCHITECTURE DEEP DIVE -->
+<!-- ============================================================ -->
+<section class="section">
+  <div class="container">
+    <h2 class="section-title">Architecture Deep Dive</h2>
+    <p class="section-subtitle">Detailed analysis of key architectural patterns, components, and their interactions</p>
+
+    <div class="card" style="margin-bottom:24px;">
+      <div class="card-header"><span class="card-title">Adapter Pattern &mdash; Multi-Platform Virtualization</span></div>
+      <p style="font-size:13px;color:var(--text-secondary);line-height:1.7;">
+        The platform adapter layer implements a clean <strong>Strategy Pattern</strong> (described as Adapter Pattern in the codebase) to abstract
+        three distinct virtualization platforms behind a unified interface. Each adapter (vSphere, KVM, FusionSphere) translates the
+        platform-agnostic operation definitions into platform-specific API calls.
+      </p>
+      <div style="display:flex;gap:12px;margin-top:16px;flex-wrap:wrap;">
+        <div class="card" style="flex:1;min-width:200px;text-align:center;padding:20px;">
+          <div style="font-weight:700;color:var(--accent-blue);margin-bottom:8px;">vSphere Adapter</div>
+          <div style="font-size:12px;color:var(--text-muted);">pyVmomi SDK</div>
+          <div style="font-size:12px;color:var(--text-muted);">VMware vCenter API</div>
+          <div style="margin-top:8px;"><span class="badge badge-low">Partially Tested</span></div>
+        </div>
+        <div class="card" style="flex:1;min-width:200px;text-align:center;padding:20px;">
+          <div style="font-weight:700;color:var(--accent-blue);margin-bottom:8px;">KVM Adapter</div>
+          <div style="font-size:12px;color:var(--text-muted);">libvirt Python</div>
+          <div style="font-size:12px;color:var(--text-muted);">QEMU/KVM Hypervisor</div>
+          <div style="margin-top:8px;"><span class="badge badge-low">Partially Tested</span></div>
+        </div>
+        <div class="card" style="flex:1;min-width:200px;text-align:center;padding:20px;">
+          <div style="font-weight:700;color:var(--accent-blue);margin-bottom:8px;">FusionSphere Adapter</div>
+          <div style="font-size:12px;color:var(--text-muted);">REST API / httpx</div>
+          <div style="font-size:12px;color:var(--text-muted);">Huawei FusionSphere</div>
+          <div style="margin-top:8px;"><span class="badge badge-critical">SSL verify=false</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Dependency Injection System</span></div>
+        <p style="font-size:13px;color:var(--text-secondary);line-height:1.7;">
+          FastAPI's <code>Depends()</code> is used throughout for dependency injection. <code>get_db()</code> provides async database sessions,
+          <code>get_current_user()</code> provides authenticated user context, and service classes receive their dependencies through
+          constructor injection. This is well-implemented for the database and auth layers.
+        </p>
+        <p style="font-size:13px;color:var(--text-secondary);line-height:1.7;margin-top:8px;">
+          <strong>Gap:</strong> The chat service, operation executor, and migration engine bypass this system entirely, using module-level
+          instantiation instead. This creates an inconsistent approach to dependency management and complicates testing.
+        </p>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Async/Await Pattern Usage</span></div>
+        <p style="font-size:13px;color:var(--text-secondary);line-height:1.7;">
+          The codebase correctly uses <code>async/await</code> throughout the data access layer with SQLAlchemy 2.0's async session.
+          FastAPI route handlers are properly declared as <code>async def</code>, and the async session is managed through a
+          dependency that handles session lifecycle (open, commit/rollback, close).
+        </p>
+        <p style="font-size:13px;color:var(--text-secondary);line-height:1.7;margin-top:8px;">
+          <strong>Gap:</strong> <code>DashboardService.get_summary()</code> makes sequential <code>await</code> calls instead of using
+          <code>asyncio.gather()</code> for parallel execution of independent queries, adding unnecessary latency.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- CHAT SERVICE ANALYSIS -->
+<!-- ============================================================ -->
+<section class="section">
+  <div class="container">
+    <h2 class="section-title">Chat Service Architecture Analysis</h2>
+    <p class="section-subtitle">Deep-dive into the regex-based intent recognition system and conversation management</p>
+
+    <div class="card" style="margin-bottom:24px;">
+      <div class="card-header"><span class="card-title">Intent Recognition Engine</span></div>
+      <table>
+        <thead><tr><th>Metric</th><th>Value</th><th>Assessment</th></tr></thead>
+        <tbody>
+          <tr><td>Regex Patterns</td><td class="num">97+</td><td><span class="badge badge-medium">Needs Organization</span></td></tr>
+          <tr><td>Recognized Intents</td><td class="num">40+</td><td><span class="badge badge-pass">Good Coverage</span></td></tr>
+          <tr><td>Pattern Categories</td><td class="num">9</td><td><span class="badge badge-pass">Aligned with Operations</span></td></tr>
+          <tr><td>Input Sanitization</td><td>None</td><td><span class="badge badge-critical">Missing</span></td></tr>
+          <tr><td>Length Limit</td><td>None</td><td><span class="badge badge-critical">ReDoS Risk</span></td></tr>
+          <tr><td>Conversation TTL</td><td>In-Memory OrderedDict</td><td><span class="badge badge-high">Lost on Restart</span></td></tr>
+          <tr><td>Context Persistence</td><td>None</td><td><span class="badge badge-high">No Redis Integration</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-title">Chat Service Concerns</span></div>
+      <ol style="font-size:13px;color:var(--text-secondary);line-height:2;padding-left:20px;">
+        <li><strong>Regex Complexity:</strong> 97+ patterns with no organization by category or priority. Pattern matching is linear O(n) across all patterns, which combined with no input length limit creates a ReDoS vulnerability surface.</li>
+        <li><strong>Context Loss:</strong> Conversation contexts stored in <code>OrderedDict</code> with TTL are lost on any process restart. In a containerized deployment (Docker/K8s), this means every redeployment wipes all active conversations.</li>
+        <li><strong>No Intent Confidence Scoring:</strong> The system uses first-match-wins pattern matching. When multiple patterns could match, there's no confidence scoring or disambiguation mechanism, leading to unpredictable intent selection.</li>
+        <li><strong>Module-Level Singleton:</strong> The chat service is instantiated at module import time, making it impossible to configure differently for different environments or inject mock dependencies for testing.</li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- DATABASE & SCHEMA ANALYSIS -->
+<!-- ============================================================ -->
+<section class="section">
+  <div class="container">
+    <h2 class="section-title">Database &amp; Schema Analysis</h2>
+    <p class="section-subtitle">PostgreSQL schema design, migration strategy, and data integrity assessment</p>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Schema Strengths</span></div>
+        <ul style="list-style:none;font-size:13px;color:var(--text-secondary);line-height:2;">
+          <li style="color:var(--accent-green);">+</span> 57 well-placed indexes covering common query patterns</li>
+          <li style="color:var(--accent-green);">+</span> Table partitioning on time-series data (migrations, audit logs)</li>
+          <li style="color:var(--accent-green);">+</span> Database triggers for automatic timestamp management</li>
+          <li style="color:var(--accent-green);">+</span> Proper foreign key constraints with CASCADE/SET NULL</li>
+          <li style="color:var(--accent-green);">+</span> UUID primary keys for distributed-friendly ID generation</li>
+          <li style="color:var(--accent-green);">+</span> JSONB columns for flexible configuration storage</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Schema Concerns</span></div>
+        <ul style="list-style:none;font-size:13px;color:var(--text-secondary);line-height:2;">
+          <li style="color:var(--accent-red);">&#x2715;</span> <code>platform_type</code> enum mismatch: schema has underscores, code does not</li>
+          <li style="color:var(--accent-red);">&#x2715;</span> <code>metric_value</code> and <code>threshold</code> stored as <code>String(100)</code> instead of <code>Numeric</code></li>
+          <li style="color:var(--accent-red);">&#x2715;</span> No Alembic configuration for migration tracking</li>
+          <li style="color:var(--accent-orange);">&#x2715;</span> Hardcoded partition date ranges (2026-01 to 2027-06)</li>
+          <li style="color:var(--accent-orange);">&#x2715;</span> <code>Platform.id</code> is integer while all other IDs are UUID strings</li>
+          <li style="color:var(--accent-orange);">&#x2715;</span> Database names use <code>v31</code> despite project being V3.2</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- API SECURITY POSTURE -->
+<!-- ============================================================ -->
+<section class="section">
+  <div class="container">
+    <h2 class="section-title">API Security Posture Assessment</h2>
+    <p class="section-subtitle">Endpoint-level authentication audit and access control analysis</p>
+
+    <div class="card" style="margin-bottom:24px;">
+      <div class="card-header"><span class="card-title">Authentication Coverage by Router</span></div>
+      <table>
+        <thead><tr><th>Router</th><th>Auth Required</th><th>Unauthenticated</th><th>Coverage</th></tr></thead>
+        <tbody>
+          <tr><td>auth.py</td><td class="num">3 (POST login, refresh, logout)</td><td class="num">0</td><td><span class="badge badge-pass">100%</span></td></tr>
+          <tr><td>platforms.py</td><td class="num">8 (CRUD + test)</td><td class="num">0</td><td><span class="badge badge-pass">100%</span></td></tr>
+          <tr><td>dashboard.py</td><td class="num">2 (summary, stats)</td><td class="num">0</td><td><span class="badge badge-pass">100%</span></td></tr>
+          <tr><td>alerts.py</td><td class="num">3 (create, update, delete)</td><td class="num">2 (list, get)</td><td><span class="badge badge-critical">60%</span></td></tr>
+          <tr><td>assets.py</td><td class="num">3 (create, update, delete)</td><td class="num">2 (list, get)</td><td><span class="badge badge-critical">60%</span></td></tr>
+          <tr><td>operations.py</td><td class="num">2 (execute, rollback)</td><td class="num">3 (list, get, categories)</td><td><span class="badge badge-critical">40%</span></td></tr>
+          <tr><td>chat.py</td><td class="num">1 (WebSocket)</td><td class="num">0</td><td><span class="badge badge-pass">100%</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-title">JWT Token Security Analysis</span></div>
+      <table>
+        <thead><tr><th>Check</th><th>Status</th><th>Detail</th></tr></thead>
+        <tbody>
+          <tr><td>Signature Verification</td><td><span class="badge badge-pass">Pass</span></td><td>HS256 with secret key; PyJWT verifies signature</td></tr>
+          <tr><td>Expiration Check</td><td><span class="badge badge-pass">Pass</span></td><td><code>exp</code> claim validated by PyJWT</td></tr>
+          <tr><td>Issued-At Check</td><td><span class="badge badge-pass">Pass</span></td><td><code>iat</code> claim present and used</td></tr>
+          <tr><td>Token Type Validation</td><td><span class="badge badge-critical">Fail</span></td><td><code>type</code> claim (access/refresh) not validated</td></tr>
+          <tr><td>Audience Validation</td><td><span class="badge badge-low">Not Implemented</span></td><td>No <code>aud</code> claim in tokens</td></tr>
+          <tr><td>Issuer Validation</td><td><span class="badge badge-low">Not Implemented</span></td><td>No <code>iss</code> claim verification</td></tr>
+          <tr><td>Token Revocation</td><td><span class="badge badge-low">Not Implemented</span></td><td>No token blacklist or revocation mechanism</td></tr>
+          <tr><td>Rotation Support</td><td><span class="badge badge-low">Not Implemented</span></td><td>No refresh token rotation</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- TECHNOLOGY HEALTH DASHBOARD -->
+<!-- ============================================================ -->
+<section class="section">
+  <div class="container">
+    <h2 class="section-title">Technology Health Dashboard</h2>
+    <p class="section-subtitle">Component-by-component assessment of the technology stack</p>
+
+    <div class="grid-2">
+      <!-- Backend components -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">Backend Component Health</span></div>
+        <table>
+          <thead><tr><th>Component</th><th>Version</th><th>Health</th></tr></thead>
+          <tbody>
+            <tr><td>Python</td><td>3.12</td><td><span class="badge badge-pass">Supported</span></td></tr>
+            <tr><td>FastAPI</td><td>0.115</td><td><span class="badge badge-pass">Current</span></td></tr>
+            <tr><td>SQLAlchemy</td><td>2.0 (async)</td><td><span class="badge badge-pass">Current</span></td></tr>
+            <tr><td>PostgreSQL</td><td>16</td><td><span class="badge badge-pass">Current</span></td></tr>
+            <tr><td>Redis</td><td>7</td><td><span class="badge badge-pass">Current</span></td></tr>
+            <tr><td>structlog</td><td>Latest</td><td><span class="badge badge-pass">Well-Used</span></td></tr>
+            <tr><td>Alembic</td><td>Not Configured</td><td><span class="badge badge-critical">Missing Config</span></td></tr>
+            <tr><td>pyVmomi</td><td>Not in reqs</td><td><span class="badge badge-critical">Missing Dep</span></td></tr>
+            <tr><td>libvirt-python</td><td>Not in reqs</td><td><span class="badge badge-critical">Missing Dep</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Frontend components -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">Frontend Component Health</span></div>
+        <table>
+          <thead><tr><th>Component</th><th>Version</th><th>Health</th></tr></thead>
+          <tbody>
+            <tr><td>React</td><td>18.3</td><td><span class="badge badge-pass">Current</span></td></tr>
+            <tr><td>TypeScript</td><td>5.6</td><td><span class="badge badge-pass">Current</span></td></tr>
+            <tr><td>Vite</td><td>6</td><td><span class="badge badge-pass">Latest</span></td></tr>
+            <tr><td>TanStack Query</td><td>5</td><td><span class="badge badge-pass">Latest</span></td></tr>
+            <tr><td>Zustand</td><td>5</td><td><span class="badge badge-pass">Latest</span></td></tr>
+            <tr><td>Tailwind CSS</td><td>3.4</td><td><span class="badge badge-pass">Current</span></td></tr>
+            <tr><td>Recharts</td><td>2.13</td><td><span class="badge badge-pass">Current</span></td></tr>
+            <tr><td>React Router</td><td>6</td><td><span class="badge badge-pass">Current</span></td></tr>
+            <tr><td>eslint</td><td>Missing</td><td><span class="badge badge-critical">Missing Dep</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- CODE QUALITY METRICS -->
+<!-- ============================================================ -->
+<section class="section">
+  <div class="container">
+    <h2 class="section-title">Code Quality Metrics</h2>
+    <p class="section-subtitle">Quantitative assessment of codebase health indicators</p>
+
+    <div class="grid-3">
+      <div class="card" style="text-align:center;">
+        <div style="font-size:13px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">TypeScript Strictness</div>
+        <div style="font-size:36px;font-weight:700;color:var(--accent-green);margin-top:8px;">Strong</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">Consistent typing throughout</div>
+        <div class="progress-bar-outer"><div class="progress-bar-inner" style="width:85%;background:var(--accent-green);"></div></div>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div style="font-size:13px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Error Handling</div>
+        <div style="font-size:36px;font-weight:700;color:var(--accent-orange);margin-top:8px;">Inconsistent</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">Good BE, silent FE</div>
+        <div class="progress-bar-outer"><div class="progress-bar-inner" style="width:55%;background:var(--accent-orange);"></div></div>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div style="font-size:13px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Logging Coverage</div>
+        <div style="font-size:36px;font-weight:700;color:var(--accent-green);margin-top:8px;">Excellent</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">structlog throughout BE</div>
+        <div class="progress-bar-outer"><div class="progress-bar-inner" style="width:90%;background:var(--accent-green);"></div></div>
+      </div>
+    </div>
+
+    <div class="grid-3" style="margin-top:20px;">
+      <div class="card" style="text-align:center;">
+        <div style="font-size:13px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Async Correctness</div>
+        <div style="font-size:36px;font-weight:700;color:var(--accent-blue);margin-top:8px;">Good</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">N+1 query in dashboard</div>
+        <div class="progress-bar-outer"><div class="progress-bar-inner" style="width:75%;background:var(--accent-blue);"></div></div>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div style="font-size:13px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Test Coverage</div>
+        <div style="font-size:36px;font-weight:700;color:var(--accent-orange);margin-top:8px;">~65%</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">4 services untested</div>
+        <div class="progress-bar-outer"><div class="progress-bar-inner" style="width:65%;background:var(--accent-orange);"></div></div>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div style="font-size:13px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Doc Completeness</div>
+        <div style="font-size:36px;font-weight:700;color:var(--accent-blue);margin-top:8px;">Fair</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">Duplication exists</div>
+        <div class="progress-bar-outer"><div class="progress-bar-inner" style="width:60%;background:var(--accent-blue);"></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- CONCLUSION -->
+<!-- ============================================================ -->
+<section class="section">
+  <div class="container">
+    <h2 class="section-title">Conclusion</h2>
+    <p class="section-subtitle">Final assessment and recommendations</p>
+
+    <div class="card">
+      <p style="font-size:14px;color:var(--text-secondary);line-height:1.8;">
+        Inspection V3.2 demonstrates <strong>strong architectural foundations</strong> with a clean layered design, modern technology choices,
+        and careful attention to async patterns and observability. The 6.8/10 score reflects that while the core architecture is sound,
+        the project carries <strong>significant security debt</strong> that prevents production deployment in its current state.
+      </p>
+      <p style="font-size:14px;color:var(--text-secondary);line-height:1.8;margin-top:12px;">
+        The <strong>P0 critical issues</strong> &mdash; particularly the audit middleware body consumption bug (which breaks all mutation endpoints),
+        shell command injection vulnerability, disabled SSL verification, and unauthenticated endpoints &mdash; must be resolved before
+        any production deployment. The migration engine is effectively non-functional and requires a complete implementation pass.
+      </p>
+      <p style="font-size:14px;color:var(--text-secondary);line-height:1.8;margin-top:12px;">
+        <strong>Estimated remediation effort:</strong> Approximately 3-4 weeks for all P0 issues, 2-3 weeks for P1 items,
+        and 1-2 weeks for P2 items. The total remediation effort is estimated at <strong>6-9 weeks</strong> of focused engineering work
+        to bring the project to production readiness.
+      </p>
+      <p style="font-size:14px;color:var(--text-secondary);line-height:1.8;margin-top:12px;">
+        <strong>Recommendation:</strong> Prioritize P0 security and functionality fixes immediately. Concurrently, begin the P1 architectural
+        improvements (enum unification, Redis state persistence, frontend state deduplication) as these will have the largest long-term
+        impact on code quality and maintainability. The version inconsistency cleanup (P3) should be completed as a single-pass sweep
+        across all configuration files and documentation.
+      </p>
+    </div>
+
+    <div class="grid-3" style="margin-top:24px;">
+      <div class="card" style="text-align:center;">
+        <div style="font-size:13px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">P0 Remediation</div>
+        <div style="font-size:32px;font-weight:700;color:var(--accent-red);margin-top:4px;">3-4 Weeks</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">7 critical issues</div>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div style="font-size:13px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">P1 Remediation</div>
+        <div style="font-size:32px;font-weight:700;color:var(--accent-orange);margin-top:4px;">2-3 Weeks</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">13 high-priority issues</div>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div style="font-size:13px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">P2 Remediation</div>
+        <div style="font-size:32px;font-weight:700;color:var(--accent-blue);margin-top:4px;">1-2 Weeks</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">9 medium-priority issues</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- FOOTER -->
+<!-- ============================================================ -->
+<footer class="footer">
+  <div class="container">
+    <p>Inspection V3.2 Code Review Report &middot; Generated June 2026</p>
+    <p style="margin-top:4px;">SRE DevOps Architecture Audit &middot; Confidential</p>
+    <p style="margin-top:12px;color:var(--text-muted);">This report covers 52 Python source files, 60+ TypeScript/CSS files, 11 database tables, 109 atomic SRE operations, and 246 tests.</p>
+  </div>
+</footer>
+
+</body>
+</html>
