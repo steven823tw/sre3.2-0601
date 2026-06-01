@@ -12,8 +12,9 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -297,17 +298,17 @@ async def sync_devices(
                 # Update existing asset
                 existing.ip_address = device.ip_address
                 existing.status = AssetStatus.RUNNING if device.status == "running" else AssetStatus.STOPPED
-                existing.metadata = device.metadata
+                existing.metadata_ = device.metadata
             else:
                 # Create new asset
                 asset = Asset(
                     name=device.name,
                     asset_type=AssetType.VM,
-                    platform=platform.platform_type,
+                    platform=platform.platform_type.value,
                     status=AssetStatus.RUNNING if device.status == "running" else AssetStatus.STOPPED,
                     ip_address=device.ip_address,
                     hostname=device.name,
-                    metadata=device.metadata,
+                    metadata_=device.metadata,
                 )
                 db.add(asset)
                 vm_count += 1
@@ -324,16 +325,16 @@ async def sync_devices(
             if existing:
                 existing.ip_address = device.ip_address
                 existing.status = AssetStatus.RUNNING if device.status == "running" else AssetStatus.STOPPED
-                existing.metadata = device.metadata
+                existing.metadata_ = device.metadata
             else:
                 asset = Asset(
                     name=device.name,
                     asset_type=AssetType.HOST,
-                    platform=platform.platform_type,
+                    platform=platform.platform_type.value,
                     status=AssetStatus.RUNNING if device.status == "running" else AssetStatus.STOPPED,
                     ip_address=device.ip_address,
                     hostname=device.name,
-                    metadata=device.metadata,
+                    metadata_=device.metadata,
                 )
                 db.add(asset)
                 host_count += 1
