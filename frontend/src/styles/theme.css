@@ -1,0 +1,76 @@
+/**
+ * V3.2 SRE Platform - Dark Theme Tokens
+ *
+ * Usage: Import this CSS file at the root of your application.
+ * All components reference these CSS custom properties for consistent theming.
+ */
+
+:root {
+  /* Background colors */
+  --color-bg-primary: #0f1117;
+  --color-bg-secondary: #1a1d24;
+  --color-bg-tertiary: #22252e;
+
+  /* Text colors */
+  --color-text-primary: #e0e0e0;
+  --color-text-secondary: #757575;
+
+  /* Accent colors */
+  --color-accent: #00BFA5;
+  --color-danger: #FF5252;
+  --color-warning: #FFB300;
+  --color-success: #69F0AE;
+
+  /* Border */
+  --color-border: #2a2d36;
+}
+
+/* Base styles */
+body {
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-secondary);
+}
+
+/* Focus ring utility */
+.focus-ring {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-accent);
+}
+
+/* Animation utilities */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+.animate-pulse {
+  animation: pulse 2s ease-in-out infinite;
+}

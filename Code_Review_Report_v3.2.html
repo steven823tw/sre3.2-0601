@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>V3.1 SRE 智能运维平台 — Code Review 分析与优化建议报告</title>
+<style>
+  :root {
+    --bg: #0f172a; --bg2: #1e293b; --bg3: #334155;
+    --accent: #38bdf8; --accent2: #818cf8; --green: #4ade80;
+    --yellow: #fbbf24; --red: #f87171; --text: #e2e8f0; --text2: #94a3b8;
+    --border: #334155;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, 'Segoe UI', system-ui, sans-serif; line-height: 1.7; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+  header { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-bottom: 1px solid var(--border); padding: 48px 0 32px; }
+  header h1 { font-size: 2rem; font-weight: 800; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  header .meta { margin-top: 12px; color: var(--text2); font-size: 0.9rem; }
+  header .meta span { display: inline-block; margin-right: 24px; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+  .badge-green { background: rgba(74,222,128,0.15); color: var(--green); }
+  .badge-yellow { background: rgba(251,191,36,0.15); color: var(--yellow); }
+  .badge-red { background: rgba(248,113,113,0.15); color: var(--red); }
+  .badge-blue { background: rgba(56,189,248,0.15); color: var(--accent); }
+
+  nav.toc { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 16px 0; position: sticky; top: 0; z-index: 100; backdrop-filter: blur(12px); }
+  nav.toc ul { list-style: none; display: flex; gap: 8px; flex-wrap: wrap; }
+  nav.toc a { color: var(--text2); text-decoration: none; font-size: 0.85rem; padding: 4px 12px; border-radius: 6px; transition: all 0.2s; }
+  nav.toc a:hover { background: var(--bg3); color: var(--accent); }
+
+  section { padding: 32px 0; border-bottom: 1px solid var(--border); }
+  section h2 { font-size: 1.4rem; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+  section h2 .icon { font-size: 1.4rem; }
+  section h3 { font-size: 1.1rem; font-weight: 600; margin: 20px 0 10px; color: var(--accent); }
+  section h4 { font-size: 0.95rem; font-weight: 600; margin: 14px 0 6px; color: var(--text); }
+
+  .overview-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin: 16px 0; }
+  .stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; }
+  .stat-card .num { font-size: 2rem; font-weight: 700; color: var(--accent); }
+  .stat-card .label { font-size: 0.85rem; color: var(--text2); margin-top: 4px; }
+
+  .finding { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin: 16px 0; }
+  .finding-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .finding-title { font-weight: 600; font-size: 1rem; }
+  .finding .desc { color: var(--text2); font-size: 0.9rem; margin-bottom: 10px; }
+  .finding .code { background: var(--bg3); border-radius: 8px; padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; overflow-x: auto; margin: 10px 0; }
+  .finding .impact { font-size: 0.85rem; margin-top: 8px; }
+  .finding .suggestion { border-left: 3px solid var(--accent); padding-left: 12px; margin-top: 10px; font-size: 0.9rem; color: var(--accent); }
+
+  .severity { font-size: 0.75rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+  .sev-critical { background: rgba(248,113,113,0.2); color: var(--red); }
+  .sev-high { background: rgba(251,191,36,0.2); color: var(--yellow); }
+  .sev-medium { background: rgba(56,189,248,0.15); color: var(--accent); }
+  .sev-low { background: rgba(74,222,128,0.15); color: var(--green); }
+
+  .rec-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin: 12px 0; }
+  .rec-card h4 { color: var(--accent2); margin-bottom: 8px; }
+  .rec-card p { color: var(--text2); font-size: 0.9rem; }
+
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem; }
+  th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { background: var(--bg2); color: var(--accent); font-weight: 600; }
+  tr:hover { background: rgba(56,189,248,0.05); }
+
+  footer { padding: 32px 0; text-align: center; color: var(--text2); font-size: 0.85rem; }
+  @media (max-width: 768px) { header h1 { font-size: 1.4rem; } nav.toc ul { flex-direction: column; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <h1>SRE 智能运维平台 — V3.1 Code Review 深度分析与优化建议</h1>
+    <div class="meta">
+      <span>审核日期: 2026-05-31</span>
+      <span>项目版本: 3.1.0</span>
+      <span>分析视角: SRE 架构师 + 产品经理</span>
+      <span><span class="badge badge-green">198/198 测试通过</span></span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="container">
+    <ul>
+      <li><a href="#overview">项目概览</a></li>
+      <li><a href="#sre">SRE 架构师视角</a></li>
+      <li><a href="#pm">产品经理视角</a></li>
+      <li><a href="#security">安全审计</a></li>
+      <li><a href="#perf">性能评估</a></li>
+      <li><a href="#recommendations">综合建议</a></li>
+      <li><a href="#roadmap">演进路线图</a></li>
+    </ul>
+  </div>
+</nav>
+
+<div class="container">
+
+<!-- ==================== OVERVIEW ==================== -->
+<section id="overview">
+  <h2><span class="icon">📊</span> 项目概览</h2>
+
+  <div class="overview-grid">
+    <div class="stat-card"><div class="num">198</div><div class="label">全部测试通过</div></div>
+    <div class="stat-card"><div class="num">109</div><div class="label">原子操作注册</div></div>
+    <div class="stat-card"><div class="num">10</div><div class="label">数据库核心表</div></div>
+    <div class="stat-card"><div class="num">15+</div><div class="label">意图识别模式</div></div>
+    <div class="stat-card"><div class="num">9</div><div class="label">操作分类</div></div>
+    <div class="stat-card"><div class="num">4</div><div class="label">开发阶段完成</div></div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header"><span class="severity sev-medium">总体评价</span><span class="finding-title">架构成熟，生产就绪度高</span></div>
+    <div class="desc">V3.1 已完成全部四个阶段的开发工作，从 Foundation → Visualization → Command Assistant → Production Readiness。项目采用了清晰的分层架构（API → Service → Repository → Database），测试覆盖率达到 198 项，具备良好的可观测性（结构化日志、健康检查、审计追踪）和运维自动化基础。</div>
+  </div>
+</section>
+
+<!-- ==================== SRE 架构师视角 ==================== -->
+<section id="sre">
+  <h2><span class="icon">🔧</span> SRE 运维架构师视角</h2>
+
+  <!-- 架构层面 -->
+  <h3>一、架构层面</h3>
+
+  <div class="finding">
+    <div class="finding-header"><span class="severity sev-critical">CRITICAL</span><span class="finding-title">数据库连接池配置与实际部署不匹配</span></div>
+    <div class="desc">config.py 中 DB_POOL_SIZE=20, DB_MAX_OVERFLOW=10，但 database.py 中创建引擎时未传递这些参数，实际连接池使用 SQLAlchemy 默认值（pool_size=5, max_overflow=10）。</div>
+    <div class="code"># database.py 中 create_async_engine 未传递 pool_size / max_overflow
+_engine = create_async_engine(
+    url,
+    echo=settings.DB_ECHO,
+    pool_pre_ping=True,
+    # 缺少: pool_size=settings.DB_POOL_SIZE,
+    # 缺少: max_overflow=settings.DB_MAX_OVERFLOW,
+)</div>
+    <div class="suggestion">建议：立即修复 database.py，将 DB_POOL_SIZE 和 DB_MAX_OVERFLOW 配置传递给引擎。</div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header"><span class="severity sev-high">HIGH</span><span class="finding-title">缺少生产级 Docker Compose 配置</span></div>
+    <div class="desc">当前只有一个 docker-compose.yml，仅适用于开发环境。缺少 docker-compose.prod.yml，未配置资源限制、健康检查、日志驱动、重启策略等生产级参数。Deployment.md 中引用了 docker-compose.prod.yml 但实际不存在。</div>
+    <div class="suggestion">建议：创建 docker-compose.prod.yml，包含 CPU/内存限制、资源预留、日志轮转、多副本设计、TLS 终止、网络策略等生产级配置。</div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header"><span class="severity sev-high">HIGH</span><span class="finding-title">仪表盘趋势数据返回全零占位数据</span></div>
+    <div class="desc">DashboardService.get_trends() 返回的 CPU、内存、告警趋势数据全部为零值占位数据。这在生产部署中会导致前端显示全零图表，严重降低产品可信度。</div>
+    <div class="code"># dashboard_service.py 第 78 行
+points.append(TrendPoint(timestamp=ts, value=0.0))  # 硬编码零值</div>
+    <div class="suggestion">建议：对接真实时间序列数据源（Prometheus/InfluxDB/TimescaleDB hypertable），或至少返回历史统计聚合值而非全零占位。</div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header"><span class="severity sev-high">HIGH</span><span class="finding-title">ChatService 为纯内存状态，无持久化</span></div>
+    <div class="desc">chat_service 为模块级单例，ConversationContext 存储在内存字典中。服务重启后所有对话上下文丢失，多实例部署时对话状态不一致。且缺少数据库持久化的对话存根。</div>
+    <div class="code"># chat_service.py 第 248 行
+self._contexts: dict[int, ConversationContext] = {}  # 纯内存</div>
+    <div class="suggestion">建议：将对话上下文持久化到 Redis（带 TTL）或数据库中，确保服务重启和水平扩展时对话状态不丢失。</div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header"><span class="severity sev-medium">MEDIUM</span><span class="finding-title">Kubernetes 健康探针路径未标准化</span></div>
+    <div class="desc">项目中已有 /health（存活）、/ready（就绪）探针，但 K8s 标准实践要求 readiness 和 liveness 使用不同端点。当前 /ready 同时检查了 DB 和 Redis，适合作为 startupProbe 而非 readinessProbe。</div>
+    <div class="suggestion">建议：按照 K8s 最佳实践配置三种探针：startupProbe=/ready（依赖就绪检查）、livenessProbe=/health（仅进程存活）、readinessProbe=/health/db（数据库可访问）。</div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header"><span class="severity sev-medium">MEDIUM</span><span class="finding-title">缺少统一指标暴露端点（Prometheus）</span></div>
+    <div class="desc">部署文档中提到了 /metrics 端点，但实际代码中并未实现 Prometheus 指标暴露。缺少请求延迟直方图、活跃请求数、数据库连接池状态、业务指标（操作执行次数、告警处理速率）等关键 SRE 指标。</div>
+    <div class="suggestion">建议：集成 prometheus-fastapi-instrumentator 或手动暴露自定义指标，实现 RED 方法论（Rate/Errors/Duration）监控。</div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header"><span class="severity sev-medium">MEDIUM</span><span class="finding-title">操作执行器仅为模拟实现</span></div>
+    <div class="desc">OperationExecutor._simulate_execution() 仅执行 10ms sleep 后返回成功，未对接任何真实平台（vSphere/OpenStack/K8s）。109 个原子操作在真实环境中无法执行任何实际操作。</div>
+    <div class="code"># operation_executor.py 第 249 行
+await asyncio.sleep(0.01)  # 仅模拟延迟
+return {"status": "success", ...}  # 始终返回成功</div>
+    <div class="suggestion">建议：实现平台适配器接口（Platform Adapter），按优先级依次对接 VMware vSphere API → SSH 命令执行 → Kubernetes API → OpenStack API。</div>
+  </div>
+
+  <!-- 可观测性 -->
+  <h3>二、可观测性与运维</h3>
+
+  <div class="finding">
+    <div class="finding-header"><span class="severity sev-medium">MEDIUM</span><span class="finding-title">审计日志为同步写入，可能阻塞请求</span></div>
+    <div class="desc">AuditMiddleware._persist_audit_log 在请求响应循环中同步写入数据库审计表，虽然使用独立 session，但仍然是 await 等待完成。高并发下审计写入可能成为性能瓶颈。</div>
+    <div class="suggestion">建议：改为后台任务（asyncio.create_task）或通过消息队列异步处理审计写入，确保审计不影响主请求路径的延迟。</div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header"><span class="severity sev-medium">MEDIUM</span><span class="finding-title">缺少优雅关闭和连接排空机制</span></div>
+    <div class="desc">应用的生命周期管理只处理了数据库引擎的 dispose，缺少：HTTP 连接排空、正在进行操作的安全中断、Redis 连接关闭、后台任务取消的协调机制。</div>
+    <div class="suggestion">建议：实现优雅关闭的完整流程 — 停止接受新请求 → 排空进行中操作（带超时）→ 关闭外部连接 → 记录关闭事件。</div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header"><span class="severity sev-low">LOW</span><span class="finding-title">日志配置可增强结构化程度</span></div>
+    <div class="desc">structlog 配置已具备 JSON 输出、时间戳等基础能力，但缺少跨服务追踪ID的自动注入、敏感字段的自动脱敏（如密码、token）功能。</div>
+    <div class="suggestion">建议：添加日志过滤器自动脱敏敏感字段，集成 OpenTelemetry 实现分布式追踪。</div>
+  </div>
+</section>
+
+<!-- ==================== 产品经理视角 ==================== -->
+<section id="pm">
+  <h2><span class="icon">📋</span> 产品经理视角</h2>
+
+  <h3>一、功能完整性评估</h3>
+
+  <table>
+    <tr><th>功能模块</th><th>完成度</th><th>评价</th></tr>
+    <tr><td>资产管理 (CRUD + 搜索)</td><td><span class="badge badge-green">90%</span></td><td>功能完整，支持多维度筛选和模糊搜索</td></tr>
+    <tr><td>告警管理 (查看/确认/解决)</td><td><span class="badge badge-green">90%</span></td><td>告警生命周期管理完整</td></tr>
+    <tr><td>操作工单 (创建/审批/执行/回滚)</td><td><span class="badge badge-blue">80%</span></td><td>工作流完整但执行器仅为模拟</td></tr>
+    <tr><td>AI 聊天助手</td><td><span class="badge badge-blue">75%</span></td><td>意图识别准确率依赖正则，缺少真实 AI 模型集成</td></tr>
+    <tr><td>仪表盘可视化</td><td><span class="badge badge-yellow">60%</span></td><td>UI 框架完善但趋势数据为全零占位</td></tr>
+    <tr><td>平台适配器</td><td><span class="badge badge-red">10%</span></td><td>仅定义了接口，无任何真实平台对接</td></tr>
+    <tr><td>多租户/权限管理</td><td><span class="badge badge-yellow">40%</span></td><td>Schema 层面有 RLS 注释，但未启用</td></tr>
+    <tr><td>WebSocket 实时推送</td><td><span class="badge badge-yellow">30%</span></td><td>前端有 useWebSocket hook 但后端未实现</td></tr>
+  </table>
+
+  <h3>二、用户体验评估</h3>
+
+  <div class="finding">
+    <div class="finding-header"><span class="severity sev-high">HIGH</span><span class="finding-title">本地化与中英文混合问题</span></div>
+    <div class="desc">ChatService 的意图识别正则和回复模板为中文，但 frontend 的默认文案为英文，后端日志为英文。产品存在中英文混用的 UX 不一致问题。</div>
+    <div class="code"># 前端 ChatView 默认文案：<br>placeholder="Ask about your infrastructure..."  # 英文<br># 后端意图回复模板：<br>RESPONSE_TEMPLATES["help"] = "我是 Engineer Assist 智能运维助手..."  # 中文</div>
+    <div class="suggestion">建议：确定目标语言（推荐全中文），统一前后端文案语言。实现 i18n 框架支持多语言切换。</div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header"><span class="severity sev-high">HIGH</span><span class="finding-title">聊天执行流程不完整 — 确认后的操作无实际效果</span></div>
+    <div class="desc">ChatView 的 handleConfirmExecute 回调是空实现（仅关闭弹窗），用户在确认执行操作后没有任何实际动作发生。这严重损害了产品的可信度和用户信任。</div>
+    <div class="code"># ChatView.tsx 第 72 行
+const handleConfirmExecute = useCallback(() => {
+    setConfirmOpen(false);
+    // 注释: In a real app, this would execute the operations
+}, []);</div>
+    <div class="suggestion">建议：实现完整的"确认 → 调用后端 API 创建操作 → 查询执行状态 → 实时反馈执行结果"闭环。</div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header"><span class="severity sev-medium">MEDIUM</span><span class="finding-title">缺少用户引导和首次体验流程</span></div>
+    <div class="desc">虽然有快速操作面板和帮助命令，但缺少结构化的新用户引导。用户首次使用时不知道该平台的完整能力范围。</div>
+    <div class="suggestion">建议：添加导览模式 / 引导步骤 / 示例场景卡片，降低新用户上手门槛。</div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header"><span class="severity sev-medium">MEDIUM</span><span class="finding-title">WebSocket 后端未实现</span></div>
+    <div class="desc">前端已集成 useWebSocket hook，vite.config.ts 中配置了 /ws 代理，但后端未实现任何 WebSocket 端点。实时推送功能无法使用。</div>
+    <div class="suggestion">建议：在 FastAPI 中实现 WebSocket 端点，支持实时告警推送、操作执行进度推送、资产状态变更推送。</div>
+  </div>
+</section>
+
+<!-- ==================== 安全审计 ==================== -->
+<section id="security">
+  <h2><span class="icon">🔒</span> 安全审计</h2>
+
+  <div class="finding">
+    <div class="finding-header"><span class="severity sev-critical">CRITICAL</span><span class="finding-title">开发模式认证绕过 — 默认 dev-user 漏洞</span></div>
+    <div class="desc">get_current_user 中当 Authorization header 为 None 时，自动返回 "dev-user"。这意味着在生产环境中如果 LB/反向代理未正确配置认证头转发，所有请求都会被当作 dev-user 处理，完全绕过认证。</div>
+    <div class="code"># dependencies.py 第 32-34 行
+if authorization is None:
+    # Development fallback — in production, always require auth
+    return "dev-user"</div>
+    <div class="suggestion">建议：将开发默认值改为环境变量控制（DEV_DEFAULT_USER），在生产模式下（DEBUG=False）强制要求认证头。添加配置项 AUTH_REQUIRED 控制是否要求所有端点认证。</div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header"><span class="severity sev-critical">CRITICAL</span><span class="finding-title">JWT_SECRET_KEY 默认空字符串</span></div>
+    <div class="desc">当 JWT_SECRET_KEY 未设置时，默认为空字符串，python-jose 使用空密钥签名 token，这意味着任何人都可以伪造有效的 JWT token。</div>
+    <div class="code"># config.py 第 99 行
+JWT_SECRET_KEY: str = ""  # 空字符串默认值</div>
+    <div class="suggestion">建议：在生产模式（DEBUG=False）下验证 JWT_SECRET_KEY 不为空；生成随机密钥作为默认值；启动时输出警告日志提示配置生产密钥。</div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header"><span class="severity sev-high">HIGH</span><span class="finding-title">CORS 配置过于宽松</span></div>
+    <div class="desc">CORS 中间件使用 allow_origins=settings.cors_origin_list，但实际配置了通配符路径，生产环境应限制为已知的前端域名。</div>
+    <div class="code"># docker-compose.yml 中未设置 CORS 环境变量
+# 默认值为 "http://localhost:3000,http://localhost:5173"</div>
+    <div class="suggestion">建议：生产环境通过环境变量严格限制 CORS 域名；添加 allow_origin_regex 支持动态域名。</div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header"><span class="severity sev-high">HIGH</span><span class="finding-title">数据库密码硬编码在 docker-compose.yml</span></div>
+    <div class="desc">docker-compose.yml 中直接暴露了数据库密码 v31_dev_password，且在多个位置引用。这违反了敏感信息管理的安全最佳实践。</div>
+    <div class="suggestion">建议：使用 Docker secrets 或 .env 文件管理敏感信息；在 git 中忽略 .env 文件；生产环境使用密钥管理服务（Vault/AWS Secrets Manager）。</div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header"><span class="severity sev-medium">MEDIUM</span><span class="finding-title">缺少请求速率限制的实施</span></div>
+    <div class="desc">config.py 中配置了 RATE_LIMIT_PER_MINUTE=60，但实际代码中未实现任何速率限制中间件或依赖。</div>
+    <div class="suggestion">建议：集成 slowapi 或基于 Redis 的速率限制中间件，在 /chat 和 /api 端点上应用速率限制。</div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header"><span class="severity sev-medium">MEDIUM</span><span class="finding-title">前端 API token 存储在 localStorage</span></div>
+    <div class="desc">HttpClient 从 localStorage 获取 auth_token，存在 XSS 攻击下的凭证泄露风险。</div>
+    <div class="suggestion">建议：短生命周期 access token 使用内存存储 + httpOnly cookie，长生命周期 refresh token 使用 httpOnly secure cookie。</div>
+  </div>
+</section>
+
+<!-- ==================== 性能评估 ==================== -->
+<section id="perf">
+  <h2><span class="icon">⚡</span> 性能与可扩展性评估</h2>
+
+  <div class="overview-grid">
+    <div class="stat-card"><div class="num">20</div><div class="label">配置连接池大小</div></div>
+    <div class="stat-card"><div class="num">10</div><div class="label">实际默连接池大小</div></div>
+    <div class="stat-card"><div class="num">40+</div><div class="label">数据库索引数</div></div>
+    <div class="stat-card"><div class="num">3</div><div class="label">分区表数量</div></div>
+  </div>
+
+  <h3>关键性能瓶颈</h3>
+
+  <div class="finding">
+    <div class="finding-header"><span class="severity sev-high">HIGH</span><span class="finding-title">N+1 查询风险 — 操作步骤加载</span></div>
+    <div class="desc">Operation 模型中使用 lazy="selectin" 加载 steps 关系，对于批量操作列表查询（如 GET /api/v1/operations），每获取一个操作都会额外查询 steps 表。Page size 为 20 时可能产生 21 条 SQL。</div>
+    <div class="suggestion">建议：列表查询使用 lazy="selectin" 或明确使用 joinedload 控制加载策略；详情查询使用 selectinload。</div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header"><span class="severity sev-medium">MEDIUM</span><span class="finding-title">SQL 全文搜索性能问题</span></div>
+    <div class="desc">AssetRepository.search 使用 ILIKE '%keyword%' 模式进行搜索，无法利用 B-tree 索引。虽然 schema 中创建了 gin_trgm_ops 索引，但 SQLAlchemy 的 ilike 可能不会自动使用 trigram 索引。</div>
+    <div class="suggestion">建议：统一使用 PostgreSQL 的 pg_trgm 扩展的 similarity 操作符；对大表考虑使用 Elasticsearch 或 Meilisearch 实现全文搜索。</div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header"><span class="severity sev-medium">MEDIUM</span><span class="finding-title">数据库 schema 与 ORM 模型不一致</span></div>
+    <div class="desc">schema.sql 定义了完整的 PostgreSQL 原生 schema（分区表、UUID 主键、数组类型、JSONB），而 ORM 模型（models/asset.py 等）使用 Integer 主键、非原生枚举、未使用 PostgreSQL 特定类型。schema.sql 和 Alembic migrations 之间缺乏同步机制。</div>
+    <div class="suggestion">建议：统一以 ORM 模型为唯一真实来源，删除 schema.sql 或将 schema.sql 作为参考文档。使用 Alembic 自动生成迁移来管理 DDL。</div>
+  </div>
+</section>
+
+<!-- ==================== 综合建议 ==================== -->
+<section id="recommendations">
+  <h2><span class="icon">🎯</span> 综合优化建议</h2>
+
+  <h3>P0 — 必须立即修复</h3>
+
+  <div class="rec-card">
+    <h4>1. 修复数据库连接池配置未生效的问题</h4>
+    <p>将 DB_POOL_SIZE 和 DB_MAX_OVERFLOW 配置传递给 create_async_engine，确保连接池按预期管理数据库连接。</p>
+  </div>
+  <div class="rec-card">
+    <h4>2. 修复开发模式认证绕过漏洞</h4>
+    <p>将 dev-user 降级为环境变量控制的选项，生产模式强制要求 JWT 认证。添加 AUTH_REQUIRED 配置项。</p>
+  </div>
+  <div class="rec-card">
+    <h4>3. 修复空 JWT_SECRET_KEY 问题</h4>
+    <p>生产模式验证密钥不为空；启动时生成随机默认密钥；添加安全警告日志。</p>
+  </div>
+
+  <h3>P1 — 高优先级</h3>
+
+  <div class="rec-card">
+    <h4>4. 创建生产级 docker-compose.prod.yml</h4>
+    <p>包含资源限制（CPU/Memory limits+reservations）、健康检查配置、日志驱动、网络策略、TLS 终止、多副本设计。</p>
+  </div>
+  <div class="rec-card">
+    <h4>5. 实现真实平台适配器</h4>
+    <p>按优先级实现 VMware vSphere → SSH/shell → Kubernetes API → OpenStack API 平台适配器，替换模拟执行器。</p>
+  </div>
+  <div class="rec-card">
+    <h4>6. 修复仪表盘全零占位数据</h4>
+    <p>对接 Prometheus/InfluxDB 时间序列数据源，或至少实现基于 asset_metrics 表的聚合查询。</p>
+  </div>
+  <div class="rec-card">
+    <h4>7. 实现完整的聊天执行闭环</h4>
+    <p>完成确认弹窗到后端 API 调用的完整链路，添加执行状态实时反馈。</p>
+  </div>
+
+  <h3>P2 — 重要改进</h3>
+
+  <div class="rec-card">
+    <h4>8. 对话上下文持久化到 Redis</h4>
+    <p>将 ChatService 的 ConversationContext 从内存迁移到 Redis（带 TTL），支持水平扩展。</p>
+  </div>
+  <div class="rec-card">
+    <h4>9. 集成 Prometheus 指标暴露</h4>
+    <p>添加请求延迟、错误率、吞吐量、业务指标（操作执行数、告警处理率）的 Prometheus 端点。</p>
+  </div>
+  <div class="rec-card">
+    <h4>10. 统一中英文语言</h4>
+    <p>确定目标语言，统一前后端文案。实现基础的 i18n 框架。</p>
+  </div>
+  <div class="rec-card">
+    <h4>11. 实现 WebSocket 实时推送</h4>
+    <p>后端实现 WebSocket 端点，支持告警实时推送、操作执行进度推送、资产状态变更推送。</p>
+  </div>
+  <div class="rec-card">
+    <h4>12. 审计日志异步化</h4>
+    <p>将审计日志写入改为后台任务，使用消息队列缓冲，避免影响请求响应时间。</p>
+  </div>
+
+  <h3>P3 — 中长期规划</h3>
+
+  <div class="rec-card">
+    <h4>13. 集成 LLM 提升意图识别准确率</h4>
+    <p>将当前的正则匹配升级为 LLM 驱动的意图识别，支持更自然的对话和上下文理解。</p>
+  </div>
+  <div class="rec-card">
+    <h4>14. 实现多租户 RBAC</h4>
+    <p>启用 Row Level Security，实现完整的角色基础权限控制（admin/operator/viewer/auditor）。</p>
+  </div>
+  <div class="rec-card">
+    <h4>15. 集成 OpenTelemetry 分布式追踪</h4>
+    <p>实现端到端的请求追踪，支持跨服务调用链分析。</p>
+  </div>
+  <div class="rec-card">
+    <h4>16. Schema 与 ORM 模型统一</h4>
+    <p>以 ORM 模型为唯一真实来源，通过 Alembic 管理所有 DDL 变更，删除独立的 schema.sql。</p>
+  </div>
+</section>
+
+<!-- ==================== 演进路线图 ==================== -->
+<section id="roadmap">
+  <h2><span class="icon">🗺️</span> V3.2 演进路线图</h2>
+
+  <table>
+    <tr><th>阶段</th><th>内容</th><th>预计工期</th><th>优先级</th></tr>
+    <tr><td>安全加固</td><td>修复 P0 安全漏洞（认证、密钥、密码硬编码）+ 速率限制</td><td>1 周</td><td><span class="badge badge-red">P0</span></td></tr>
+    <tr><td>生产就绪</td><td>生产级 Docker Compose + K8s 部署配置 + Prometheus 指标 + 优雅关闭</td><td>2 周</td><td><span class="badge badge-red">P0</span></td></tr>
+    <tr><td>平台适配器</td><td>VMware vSphere API 对接（首批 20 个原子操作）</td><td>3 周</td><td><span class="badge badge-yellow">P1</span></td></tr>
+    <tr><td>功能闭环</td><td>聊天执行闭环 + 仪表盘真实数据 + WebSocket 实时推送</td><td>2 周</td><td><span class="badge badge-yellow">P1</span></td></tr>
+    <tr><td>用户体验</td><td>语言统一 + i18n + 新用户引导 + 操作确认流程优化</td><td>1 周</td><td><span class="badge badge-blue">P2</span></td></tr>
+    <tr><td>架构升级</td><td>LLM 意图识别 + Redis 持久化 + OpenTelemetry + RBAC 多租户</td><td>4 周</td><td><span class="badge badge-blue">P3</span></td></tr>
+  </table>
+
+  <div class="finding" style="margin-top: 24px;">
+    <div class="finding-header"><span class="severity sev-medium">总结</span><span class="finding-title">V3.1 为 SRE 智能运维平台打下了坚实基础，下一阶段应聚焦安全加固和生产就绪</span></div>
+    <div class="desc">
+      V3.1 项目展示了优秀的分层架构设计、完整的测试覆盖（198 项通过）、清晰的代码组织、以及面向 SRE 场景的丰富功能定义。
+      主要短板集中在三个方面：
+      <ol style="margin-left: 20px; margin-top: 8px; color: var(--text2);">
+        <li><strong>安全问题</strong> — 默认 dev-user 绕过认证、空 JWT 密钥、配置与实现脱节</li>
+        <li><strong>功能完整性</strong> — 执行器为模拟实现、仪表盘数据为占位、聊天执行闭环不完整</li>
+        <li><strong>生产就绪</strong> — 缺少生产级部署配置、Prometheus 指标、WebSocket 实时推送</li>
+      </ol>
+      建议 V3.2 迭代优先解决 P0/P1 问题，在此基础上逐步推进平台适配器对接和 LLM 集成。
+    </div>
+  </div>
+</section>
+
+</div>
+
+<footer>
+  <div class="container">
+    <p>Engineer Assist — SRE Intelligent Operations Platform | Code Review Report v3.2</p>
+    <p>分析生成时间: 2026-05-31 | 工具: QoderWork | 分析视角: SRE 架构师 + 产品经理</p>
+  </div>
+</footer>
+
+</body>
+</html>

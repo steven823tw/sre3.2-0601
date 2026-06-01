@@ -1,0 +1,85 @@
+# V3.2 SRE Platform — Development Environment
+# Usage: docker compose up -d
+
+version: "3.9"
+
+services:
+  # ── PostgreSQL 16 ────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: v32-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: v32_sre
+      POSTGRES_USER: v32
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-v32_dev_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U v32 -d v32_sre"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis 7 ─────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: v32-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Backend ─────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: v32-backend
+    restart: unless-stopped
+    ports:
+      - "8688:8688"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://v32:${DB_PASSWORD:-v32_dev_password}@postgres:5432/v32_sre
+      REDIS_URL: redis://redis:6379/0
+      APP_ENV: development
+      APP_DEBUG: "true"
+      LOG_LEVEL: DEBUG
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-dev-secret-key}
+      DEV_DEFAULT_USER: dev-user
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8688 --reload
+
+  # ── Frontend ────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: v32-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm run dev -- --host 0.0.0.0
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:

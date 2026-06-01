@@ -1,0 +1,17 @@
+export {
+  listPlatforms,
+  getPlatform,
+  addPlatform,
+  updatePlatform,
+  testPlatformConnection,
+  syncPlatformDevices,
+  deletePlatform,
+  listDevices,
+  listVMs,
+  planMigration,
+  executeMigration,
+  getMigrationStatus,
+  getMigrationHistory,
+  rollbackMigration,
+  importDevicesCSV,
+} from './platforms';
